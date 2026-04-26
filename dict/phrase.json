@@ -1,22 +1,24 @@
 {
-  "do you need a": "ジューニーダ",
-  "do you need": "ジューニード",
-  "do you have": "ジューハヴ",
+  "hello. can i get a": "ハロウ キャナイゲッタ",
+  "can i get a": "キャナイゲッタ",
+  "can i get": "キャナイゲッ",
 
-  "will that be all": "ウィルザッビーオール",
-  "will that be": "ウィルザッビー",
+  "what size would you like": "ワッサイズウッジューライク",
 
-  "they are over there": "ゼイアーオウヴァゼァ",
-  "over there": "オウヴァゼァ",
+  "hot, please": "ホットプリーズ",
+  "medium, please": "ミディアムプリーズ",
+  "to go, please": "トゥゴープリーズ",
 
-  "hot or iced": "ホットオアアイスド",
+  "for here or to go": "フォーヒアオアトゥゴー",
+
+  "here you are": "ヒアユアー",
 
   "that will be": "ダウルビー",
 
-  "do you": "ジュー",
-  "would you": "ウッジュー",
+  "hot or iced": "ホットオアアイスド",
 
-  "for here or to go": "フォーヒアオアトゥゴー",
-  "no thank you": "ノーサンキュー",
-  "thank you": "サンキュー"
+  "thank you": "サンキュー",
+
+  "would you": "ウッジュー",
+  "do you": "ジュー"
 }

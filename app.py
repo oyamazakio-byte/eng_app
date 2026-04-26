@@ -35,6 +35,7 @@ def load_json(path):
 
 WORD_DICT = load_json(f"{DICT_DIR}/word.json")
 PHRASE_DICT = load_json(f"{DICT_DIR}/phrase.json")
+TRANSLATE_DICT = load_json(f"{DICT_DIR}/translate.json")  # ★追加
 
 # -----------------------
 # DB
@@ -74,7 +75,7 @@ def init_db():
 # -----------------------
 def number_to_katakana(num):
     special = {
-        "600": "シクスハンドレッド",
+        "600": "シックスハンドレッド",
         "500": "ファイブハンドレッド",
         "450": "フォーハンドレッドフィフティ"
     }
@@ -84,59 +85,58 @@ def number_to_katakana(num):
 
     mapping = {
         "0":"ゼロ","1":"ワン","2":"トゥー","3":"スリー",
-        "4":"フォー","5":"ファイブ","6":"シクス",
+        "4":"フォー","5":"ファイブ","6":"シックス",
         "7":"セブン","8":"エイト","9":"ナイン"
     }
 
     return " ".join(mapping.get(n, "") for n in num)
 
 # -----------------------
-# カタカナ変換（最終完成）
+# カタカナ変換
 # -----------------------
 def to_katakana(text):
 
     t = text.lower()
 
-    # ① 数字
+    # 数字
     t = re.sub(r"\d+", lambda m: number_to_katakana(m.group()), t)
 
-    # ② フレーズ（長い順）
+    # フレーズ
     for k, v in sorted(PHRASE_DICT.items(), key=lambda x: -len(x[0])):
         t = t.replace(k, v)
 
-    # ③ 単語
+    # 単語
     for k, v in WORD_DICT.items():
         t = t.replace(k, v)
 
-    # ★ ④ フレーズ再適用（最重要）
+    # 再度フレーズ
     for k, v in sorted(PHRASE_DICT.items(), key=lambda x: -len(x[0])):
         t = t.replace(k, v)
 
-    # ⑤ 記号削除（?も消す）
+    # 記号削除
     t = re.sub(r"[.,!?]", "", t)
 
-    # ⑥ 英字削除
+    # 英字削除
     t = re.sub(r"[a-z]", "", t)
 
-    # ⑦ スペース整理
+    # 空白整理
     t = re.sub(r"\s+", " ", t).strip()
 
     return t
 
 # -----------------------
-# 翻訳
+# 翻訳（最重要改善）
 # -----------------------
-FORCE_DICT = {
-    "hello.": "こんにちは。",
-    "hi.": "やあ。",
-    "that will be 600 yen.": "600円になります。",
-}
+def normalize(text):
+    return re.sub(r"[.,!?]", "", text.lower()).strip()
 
 def translate(text):
-    key = text.lower().strip()
+    key = normalize(text)
 
-    if key in FORCE_DICT:
-        return FORCE_DICT[key]
+    # ★ 完全一致（句読点無視）
+    for k, v in TRANSLATE_DICT.items():
+        if normalize(k) == key:
+            return v
 
     if client is None:
         return text
@@ -158,6 +158,7 @@ def translate(text):
 # Jinja
 # -----------------------
 app.jinja_env.globals.update(to_katakana=to_katakana)
+app.jinja_env.globals.update(translate=translate)  # ★追加
 
 # -----------------------
 # ルート

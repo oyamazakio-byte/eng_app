@@ -10,6 +10,11 @@
 🎧 トレーニング
 </button>
 
+<!-- ★ 追加：シャドーイング -->
+<button onclick="shadowingStart()" style="font-size:34px;padding:20px;width:100%;margin:10px;background:#4caf50;color:white;">
+🎤 シャドーイング
+</button>
+
 <button onclick="stopAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;">
 ⏹ 停止
 </button>
@@ -49,7 +54,7 @@ background:#fff3e0;
 {{ m.text }}
 </div>
 
-<!-- ★ 修正：ここ重要 -->
+<!-- カタカナ -->
 <div class="kana" style="font-size:40px;color:#555;">
 {{ to_katakana(m.text) }}
 </div>
@@ -74,6 +79,7 @@ style="font-size:30px;padding:20px;width:100%;">
 <script>
 let playing = false;
 let training = false;
+let shadowing = false; // ★追加
 let index = 0;
 let lines = [];
 
@@ -84,6 +90,7 @@ window.onload = function() {
     lines = document.querySelectorAll(".line");
 };
 
+// 表示切替
 function toggleKana(){
     kanaVisible = !kanaVisible;
     document.querySelectorAll(".kana").forEach(el=>{
@@ -98,6 +105,7 @@ function toggleJP(){
     });
 }
 
+// ▶ 全体再生
 function playAll() {
     stopAll();
     playing = true;
@@ -114,6 +122,7 @@ function playLoop() {
     setTimeout(playLoop, 2500);
 }
 
+// 🎧 トレーニング
 function trainingAll() {
     stopAll();
     training = true;
@@ -130,15 +139,38 @@ function trainingLoop() {
     setTimeout(trainingLoop, 4000);
 }
 
+// 🎤 シャドーイング（追加）
+function shadowingStart() {
+    stopAll();
+    shadowing = true;
+    index = 0;
+    shadowLoop();
+}
+
+function shadowLoop() {
+    if (!shadowing || index >= lines.length) return;
+
+    speak(lines[index].dataset.text);
+
+    setTimeout(() => {
+        index++;
+        shadowLoop();
+    }, 4000); // ← 発音時間
+}
+
+// ⏹ 停止
 function stopAll() {
     playing = false;
     training = false;
+    shadowing = false;
     speechSynthesis.cancel();
 }
 
+// 音声
 function speak(text) {
     const uttr = new SpeechSynthesisUtterance(text);
     uttr.lang = 'en-US';
+    uttr.rate = 0.85; // ★ゆっくり（重要）
     speechSynthesis.speak(uttr);
 }
 </script>
