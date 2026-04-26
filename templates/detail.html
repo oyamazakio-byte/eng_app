@@ -1,0 +1,117 @@
+<h1 style="font-size:40px; text-align:center;">
+{{ item.title }}
+</h1>
+
+<hr>
+
+<!-- ✏ 編集（★追加） -->
+<a href="{% if item.english_a %}/eng/edit/{{ item.id }}{% else %}/eng/edit_multi/{{ item.id }}{% endif %}"
+style="
+display:block;
+font-size:34px;
+padding:20px;
+width:100%;
+background:#2196F3;
+color:white;
+text-align:center;
+border-radius:10px;
+margin-bottom:10px;
+text-decoration:none;">
+✏ 編集
+</a>
+
+<hr>
+
+<!-- 🔊 操作 -->
+<button onclick="speakOnce()"
+style="font-size:34px; padding:20px; width:100%; margin:10px 0;">
+🔊 1回再生
+</button>
+
+<button onclick="autoPlay()"
+style="font-size:34px; padding:20px; width:100%; margin:10px 0;">
+▶ 自動再生
+</button>
+
+<button onclick="trainingMode()"
+style="font-size:34px; padding:20px; width:100%; margin:10px 0; background:#ff9800; color:white;">
+🎧 トレーニング
+</button>
+
+<button onclick="stopPlay()"
+style="font-size:34px; padding:20px; width:100%; margin:10px 0;">
+⏹ 停止
+</button>
+
+<hr>
+
+<!-- ⏱ スピード切替 -->
+<div style="display:flex; gap:10px; margin:15px 0;">
+<button onclick="setSpeed(2000)" style="flex:1; font-size:28px; padding:15px;">速い</button>
+<button onclick="setSpeed(3000)" style="flex:1; font-size:28px; padding:15px;">普通</button>
+<button onclick="setSpeed(5000)" style="flex:1; font-size:28px; padding:15px;">ゆっくり</button>
+</div>
+
+<hr>
+
+<!-- 表示切替 -->
+<button id="kanaBtn" onclick="toggleKana()"
+style="font-size:32px; padding:20px; width:100%; margin:10px 0;">
+カタカナ：ON
+</button>
+
+<button id="jpBtn" onclick="toggleJP()"
+style="font-size:32px; padding:20px; width:100%; margin:10px 0;">
+日本語：ON
+</button>
+
+<hr>
+
+<!-- A -->
+<h2 style="font-size:36px;">■ A</h2>
+
+<div id="textA" style="font-size:80px; margin:20px 0;">
+{{ item.english_a }}
+</div>
+
+<div id="kanaA" style="font-size:50px; color:#555;">
+{{ item.katakana_a }}
+</div>
+
+<div id="jpA" style="font-size:45px; color:#007bff;">
+{{ item.japanese_a }}
+</div>
+
+<hr>
+
+<!-- B -->
+<h2 style="font-size:36px;">■ B</h2>
+
+<div id="textB" style="font-size:80px; margin:20px 0;">
+{{ item.english_b }}
+</div>
+
+<div id="kanaB" style="font-size:50px; color:#555;">
+{{ item.katakana_b }}
+</div>
+
+<div id="jpB" style="font-size:45px; color:#007bff;">
+{{ item.japanese_b }}
+</div>
+
+<hr>
+
+<!-- 削除 -->
+<form action="/eng/delete/{{ item.id }}" method="post"
+onsubmit="return confirm('削除しますか？');">
+<button style="font-size:34px; padding:20px; width:100%; background:red; color:white;">
+🗑 この会話を削除
+</button>
+</form>
+
+<hr>
+
+<button onclick="location.href='/eng/'"
+style="font-size:32px; padding:25px; width:100%;">
+← 一覧に戻る
+</button>

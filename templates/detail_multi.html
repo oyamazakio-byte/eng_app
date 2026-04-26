@@ -1,0 +1,144 @@
+<h1 style="font-size:40px;">{{ conv.title }}</h1>
+
+<hr>
+
+<button onclick="playAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;">
+▶ 全体再生
+</button>
+
+<button onclick="trainingAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;background:#ff9800;color:white;">
+🎧 トレーニング
+</button>
+
+<button onclick="stopAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;">
+⏹ 停止
+</button>
+
+<hr>
+
+<button onclick="toggleKana()" style="font-size:28px;width:100%;margin:5px;">
+カタカナ ON/OFF
+</button>
+
+<button onclick="toggleJP()" style="font-size:28px;width:100%;margin:5px;">
+日本語 ON/OFF
+</button>
+
+<hr>
+
+<div id="chat">
+
+{% for m in messages %}
+<div class="line"
+data-text="{{ m.text }}"
+style="
+margin:20px;
+padding:20px;
+border-radius:10px;
+{% if m.speaker == 'A' %}
+background:#e3f2fd;
+{% else %}
+background:#fff3e0;
+{% endif %}
+">
+
+<b style="font-size:30px;">{{ m.speaker }}:</b>
+
+<!-- 英語 -->
+<div style="font-size:60px;">
+{{ m.text }}
+</div>
+
+<!-- ★ 修正：ここ重要 -->
+<div class="kana" style="font-size:40px;color:#555;">
+{{ to_katakana(m.text) }}
+</div>
+
+<!-- 日本語 -->
+<div class="jp" style="font-size:36px;color:#007bff;">
+{{ m.japanese }}
+</div>
+
+</div>
+{% endfor %}
+
+</div>
+
+<hr>
+
+<button onclick="location.href='/eng/'"
+style="font-size:30px;padding:20px;width:100%;">
+← 一覧に戻る
+</button>
+
+<script>
+let playing = false;
+let training = false;
+let index = 0;
+let lines = [];
+
+let kanaVisible = true;
+let jpVisible = true;
+
+window.onload = function() {
+    lines = document.querySelectorAll(".line");
+};
+
+function toggleKana(){
+    kanaVisible = !kanaVisible;
+    document.querySelectorAll(".kana").forEach(el=>{
+        el.style.display = kanaVisible ? "block":"none";
+    });
+}
+
+function toggleJP(){
+    jpVisible = !jpVisible;
+    document.querySelectorAll(".jp").forEach(el=>{
+        el.style.display = jpVisible ? "block":"none";
+    });
+}
+
+function playAll() {
+    stopAll();
+    playing = true;
+    index = 0;
+    playLoop();
+}
+
+function playLoop() {
+    if (!playing || index >= lines.length) return;
+
+    speak(lines[index].dataset.text);
+    index++;
+
+    setTimeout(playLoop, 2500);
+}
+
+function trainingAll() {
+    stopAll();
+    training = true;
+    index = 0;
+    trainingLoop();
+}
+
+function trainingLoop() {
+    if (!training || index >= lines.length) return;
+
+    speak(lines[index].dataset.text);
+    index++;
+
+    setTimeout(trainingLoop, 4000);
+}
+
+function stopAll() {
+    playing = false;
+    training = false;
+    speechSynthesis.cancel();
+}
+
+function speak(text) {
+    const uttr = new SpeechSynthesisUtterance(text);
+    uttr.lang = 'en-US';
+    speechSynthesis.speak(uttr);
+}
+</script>

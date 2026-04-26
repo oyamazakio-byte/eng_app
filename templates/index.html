@@ -1,0 +1,107 @@
+<h1 style="font-size:60px; text-align:center;">会話一覧</h1>
+
+<!-- 🔍 検索 -->
+<form method="get" action="/eng/" style="margin:25px 0; display:flex; gap:10px;">
+<input name="q" value="{{ q if q else '' }}" placeholder="検索"
+style="
+flex:3;
+font-size:40px;
+padding:24px;
+border-radius:12px;
+border:4px solid #333;
+">
+
+<button type="submit"
+style="
+flex:1;
+font-size:34px;
+background:#4CAF50;
+color:white;
+border:none;
+border-radius:12px;">
+検索
+</button>
+</form>
+
+<!-- ⭐ フィルタ -->
+<a href="/eng/?fav=1"
+style="
+display:block;
+font-size:36px;
+padding:22px;
+background:#FFD700;
+text-align:center;
+border-radius:12px;
+margin-bottom:10px;
+text-decoration:none;">
+⭐ お気に入りだけ表示
+</a>
+
+<!-- ← 一覧に戻る -->
+<a href="/eng/"
+style="
+display:block;
+font-size:32px;
+padding:18px;
+background:#bbb;
+text-align:center;
+border-radius:10px;
+margin-bottom:20px;
+text-decoration:none;">
+← 一覧に戻る
+</a>
+
+<!-- 📚 複数会話（★ここ修正） -->
+<a href="/eng/add_multi"
+style="
+display:block;
+font-size:40px;
+padding:24px;
+background:#ff9800;
+color:white;
+text-align:center;
+border-radius:15px;
+margin-bottom:20px;
+text-decoration:none;">
+📚 複数会話を追加
+</a>
+
+<hr>
+
+<ul style="list-style:none; padding:0;">
+{% for row in data %}
+<li style="
+margin-bottom:35px;
+padding:28px;
+border:3px solid #ccc;
+border-radius:15px;
+background:#fafafa;
+">
+
+<a href="/eng/detail_multi/{{ row.id }}"
+style="font-size:48px; font-weight:bold; text-decoration:none; color:black;">
+
+📚 {{ row.title }}
+
+</a>
+
+<div style="display:flex; gap:10px; margin-top:20px;">
+
+<form action="/eng/delete/{{ row.id }}" method="post" style="flex:1;">
+<button style="
+font-size:32px;
+padding:25px;
+width:100%;
+background:#e53935;
+color:white;
+border:none;
+border-radius:12px;">
+🗑 削除
+</button>
+</form>
+
+</div>
+
+</li>
+{% endfor %}
+</ul>

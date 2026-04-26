@@ -1,0 +1,99 @@
+<div style="zoom:1.2; transform: scale(1.2); transform-origin: top left; width:83%;">
+
+<h1 style="font-size:56px; text-align:center; margin-bottom:30px;">
+会話を追加
+</h1>
+
+<form method="post" id="form">
+
+<div style="border:3px solid #333; border-radius:15px; padding:25px; margin-bottom:30px;">
+
+<h3 style="font-size:40px;">■ 基本情報</h3>
+
+<label style="font-size:36px;">タイトル</label><br>
+<input name="title" required
+style="width:100%; font-size:40px; padding:25px; margin:20px 0;
+border:3px solid #555; border-radius:10px;"><br>
+
+</div>
+
+<div style="border:3px solid #333; border-radius:15px; padding:25px; margin-bottom:30px;">
+
+<h3 style="font-size:40px;">■ A（話す人1）</h3>
+
+<label style="font-size:36px;">英語</label><br>
+<input name="english_a" required
+style="width:100%; font-size:44px; padding:25px; margin:20px 0;
+border:3px solid #555; border-radius:10px;"><br>
+
+</div>
+
+<div style="border:3px solid #333; border-radius:15px; padding:25px; margin-bottom:30px;">
+
+<h3 style="font-size:40px;">■ B（話す人2）</h3>
+
+<label style="font-size:36px;">英語</label><br>
+<input name="english_b"
+style="width:100%; font-size:44px; padding:25px; margin:20px 0;
+border:3px solid #555; border-radius:10px;"><br>
+
+</div>
+
+<div style="border:3px solid #333; border-radius:15px; padding:25px; margin-bottom:30px;">
+
+<h3 style="font-size:38px;">■ 自動生成</h3>
+
+<label style="font-size:34px;">A カタカナ</label><br>
+<input name="katakana_a" readonly
+style="width:100%; font-size:34px; padding:20px; margin:15px 0;
+border:3px solid #aaa; border-radius:10px;"><br>
+
+<label style="font-size:34px;">A 日本語</label><br>
+<input name="japanese_a" readonly
+style="width:100%; font-size:34px; padding:20px; margin:15px 0;
+border:3px solid #aaa; border-radius:10px;"><br>
+
+<label style="font-size:34px;">B カタカナ</label><br>
+<input name="katakana_b" readonly
+style="width:100%; font-size:34px; padding:20px; margin:15px 0;
+border:3px solid #aaa; border-radius:10px;"><br>
+
+<label style="font-size:34px;">B 日本語</label><br>
+<input name="japanese_b" readonly
+style="width:100%; font-size:34px; padding:20px; margin:15px 0;
+border:3px solid #aaa; border-radius:10px;"><br>
+
+</div>
+
+<!-- 保存ボタン -->
+<button type="submit" id="submitBtn"
+style="font-size:42px; padding:30px; width:100%; margin-top:20px;">
+保存
+</button>
+
+<!-- 処理中 -->
+<p id="loading" style="display:none; font-size:32px; color:blue; margin-top:20px;">
+処理中です…少し待ってください
+</p>
+
+</form>
+
+<br>
+
+<button onclick="location.href='/eng/'"
+style="font-size:38px; padding:25px; width:100%; margin-top:30px;">
+← 一覧に戻る
+</button>
+
+<script>
+document.getElementById("form").addEventListener("submit", function() {
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.innerText = "送信中...";
+
+    document.getElementById("loading").style.display = "block";
+});
+</script>
+
+</div>
