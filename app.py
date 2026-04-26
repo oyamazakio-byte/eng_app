@@ -35,7 +35,7 @@ def load_json(path):
 
 WORD_DICT = load_json(f"{DICT_DIR}/word.json")
 PHRASE_DICT = load_json(f"{DICT_DIR}/phrase.json")
-TRANSLATE_DICT = load_json(f"{DICT_DIR}/translate.json")  # ★追加
+TRANSLATE_DICT = load_json(f"{DICT_DIR}/translate.json")
 
 # -----------------------
 # DB
@@ -92,11 +92,12 @@ def number_to_katakana(num):
     return " ".join(mapping.get(n, "") for n in num)
 
 # -----------------------
-# カタカナ変換
+# カタカナ変換（★修正）
 # -----------------------
 def to_katakana(text):
 
     t = text.lower()
+    t = t.replace("’", "'")  # ★追加（超重要）
 
     # 数字
     t = re.sub(r"\d+", lambda m: number_to_katakana(m.group()), t)
@@ -125,15 +126,17 @@ def to_katakana(text):
     return t
 
 # -----------------------
-# 翻訳（最重要改善）
+# 翻訳（★修正）
 # -----------------------
 def normalize(text):
-    return re.sub(r"[.,!?]", "", text.lower()).strip()
+    text = text.lower()
+    text = text.replace("’", "'")  # ★追加
+    text = re.sub(r"[.,!?]", "", text)
+    return text.strip()
 
 def translate(text):
     key = normalize(text)
 
-    # ★ 完全一致（句読点無視）
     for k, v in TRANSLATE_DICT.items():
         if normalize(k) == key:
             return v
@@ -158,7 +161,7 @@ def translate(text):
 # Jinja
 # -----------------------
 app.jinja_env.globals.update(to_katakana=to_katakana)
-app.jinja_env.globals.update(translate=translate)  # ★追加
+app.jinja_env.globals.update(translate=translate)
 
 # -----------------------
 # ルート
