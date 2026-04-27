@@ -20,6 +20,12 @@
 
 <hr>
 
+<!-- ★ モード切替 -->
+<button onclick="toggleMode()" id="modeBtn"
+style="font-size:30px;padding:16px;width:100%;margin:10px;background:#673ab7;color:white;">
+🎓 学習モード
+</button>
+
 <button onclick="toggleKana()" style="font-size:28px;width:100%;margin:5px;">
 カタカナ ON/OFF
 </button>
@@ -38,7 +44,7 @@ data-text="{{ m.text }}"
 style="
 margin:20px;
 padding:20px;
-border-radius:10px;
+border-radius:12px;
 {% if m.speaker == 'A' %}
 background:#e3f2fd;
 {% else %}
@@ -48,29 +54,32 @@ background:#fff3e0;
 
 <b style="font-size:30px;">{{ m.speaker }}:</b>
 
-<div style="font-size:60px;">
+<div style="font-size:60px;font-weight:bold;">
 {{ m.text }}
 </div>
 
-<div class="kana" style="font-size:40px;color:#555;">
-{{ to_katakana(m.text) }}
+<!-- ★ カタカナ（モード対応） -->
+<div class="kana"
+data-normal="{{ m.kana }}"
+data-native="{{ m.kana_native }}"
+style="font-size:40px;color:#555;">
+{{ m.kana }}
 </div>
 
 <div class="jp" style="font-size:36px;color:#007bff;">
 {{ m.japanese }}
 </div>
 
-<div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
 
-<!-- ★ 修正済み -->
 <button onclick="playOne(this)"
 data-text="{{ m.text }}"
-style="font-size:22px;background:#9c27b0;color:white;padding:8px 12px;border:none;border-radius:6px;">
+style="font-size:22px;background:#9c27b0;color:white;padding:10px 14px;border:none;border-radius:8px;">
 ▶ 再生
 </button>
 
 <button onclick="retranslate({{ m.id }})"
-style="font-size:22px;background:#2196f3;color:white;padding:8px 12px;border:none;border-radius:6px;">
+style="font-size:22px;background:#2196f3;color:white;padding:10px 14px;border:none;border-radius:8px;">
 🔄 再翻訳
 </button>
 
@@ -98,6 +107,9 @@ let lines = [];
 let kanaVisible = true;
 let jpVisible = true;
 
+// ★ モード
+let nativeMode = false;
+
 let voices = [];
 
 function loadVoices(){
@@ -110,6 +122,32 @@ window.onload = function() {
     lines = document.querySelectorAll(".line");
     loadVoices();
 };
+
+// --------------------
+// モード切替（重要）
+// --------------------
+function toggleMode(){
+
+    nativeMode = !nativeMode;
+
+    const btn = document.getElementById("modeBtn");
+
+    if(nativeMode){
+        btn.innerText = "🗣 ネイティブモード";
+        btn.style.background = "#e91e63";
+    }else{
+        btn.innerText = "🎓 学習モード";
+        btn.style.background = "#673ab7";
+    }
+
+    document.querySelectorAll(".kana").forEach(el=>{
+        if(nativeMode){
+            el.innerText = el.dataset.native || el.dataset.normal;
+        }else{
+            el.innerText = el.dataset.normal;
+        }
+    });
+}
 
 // 表示切替
 function toggleKana(){
@@ -187,11 +225,10 @@ function stopAll() {
     speechSynthesis.cancel();
 }
 
-// ★ 修正（ここが重要）
+// ▶ 個別再生
 function playOne(btn){
     stopAll();
-    const text = btn.dataset.text;
-    speak(text);
+    speak(btn.dataset.text);
 }
 
 // 🔄 再翻訳
