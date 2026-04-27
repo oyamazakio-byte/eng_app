@@ -8,7 +8,6 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# Proxy対応
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
 
 # -----------------------
@@ -20,7 +19,7 @@ client = OpenAI(api_key=api_key) if api_key else None
 DB_NAME = "/home/bitnami/eng_app/conversation.db"
 
 # -----------------------
-# 辞書読み込み
+# 辞書
 # -----------------------
 DICT_DIR = "/home/bitnami/eng_app/dict"
 
@@ -29,13 +28,22 @@ def load_json(path):
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
                 return json.load(f)
-    except Exception as e:
-        print("JSON読み込みエラー:", path, e)
+    except:
+        pass
     return {}
 
-WORD_DICT = load_json(f"{DICT_DIR}/word.json")
 PHRASE_DICT = load_json(f"{DICT_DIR}/phrase.json")
 TRANSLATE_DICT = load_json(f"{DICT_DIR}/translate.json")
+
+# -----------------------
+# 正規化（重要）
+# -----------------------
+def normalize(text):
+    text = text.lower()
+    text = text.replace("’", "'")
+    text = re.sub(r"[.,!?]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
 # -----------------------
 # DB
@@ -52,8 +60,7 @@ def init_db():
     conn.execute("""
     CREATE TABLE IF NOT EXISTS conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        favorite INTEGER DEFAULT 0
+        title TEXT
     )
     """)
 
@@ -63,7 +70,8 @@ def init_db():
         conversation_id INTEGER,
         speaker TEXT,
         text TEXT,
-        japanese TEXT
+        japanese TEXT,
+        kana TEXT
     )
     """)
 
@@ -71,69 +79,85 @@ def init_db():
     conn.close()
 
 # -----------------------
-# 数字
+# ★ 発音チューニング（最終）
 # -----------------------
-def number_to_katakana(num):
-    special = {
-        "600": "シックスハンドレッド",
-        "500": "ファイブハンドレッド",
-        "450": "フォーハンドレッドフィフティ"
-    }
+def tune_katakana(text):
 
-    if num in special:
-        return special[num]
+    # リンキング
+    text = text.replace(" ア ", "ァ ")
+    text = text.replace(" ア", "ァ")
 
-    mapping = {
-        "0":"ゼロ","1":"ワン","2":"トゥー","3":"スリー",
-        "4":"フォー","5":"ファイブ","6":"シックス",
-        "7":"セブン","8":"エイト","9":"ナイン"
-    }
+    text = text.replace("ライク ア", "ライクァ")
+    text = text.replace("アウッライク ア", "アウッライクァ")
+    text = text.replace("ハヴ ア", "ハヴァ")
 
-    return " ".join(mapping.get(n, "") for n in num)
+    # 基本補正
+    text = text.replace("ドゥ ユー", "ジュー")
+    text = text.replace("ドゥユー", "ジュー")
+
+    text = text.replace("ドゥント", "ドント")
+    text = text.replace("ドウント", "ドント")
+
+    text = text.replace("ワット ドゥ ユー", "ワッドゥユー")
+    text = text.replace("ワットゥ ユー", "ワッドゥユー")
+
+    text = text.replace("アライク", "アウッライク")
+    text = text.replace("アイ ウッド ライク", "アウッライク")
+
+    text = text.replace("レザベイション", "リザベイション")
+    text = text.replace("レコメンド", "レコメン")
+
+    # -----------------------
+    # ★ 追加（今回の本命）
+    # -----------------------
+    text = text.replace("ワッジュー", "ワッドゥユー")
+    text = text.replace("ワッジュ", "ワッドゥユー")
+
+    # 仕上げ
+    text = text.replace("ジュー ", "ジュー")
+    text = text.replace("ウィー ", "ウィ ")
+
+    text = text.replace("アウッライク ステーキ", "アウッライクァ ステーキ")
+
+    if text.startswith("レコメン"):
+        text = "ワッドゥユー " + text
+
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
 
 # -----------------------
-# カタカナ変換（★修正）
+# カタカナ変換
 # -----------------------
 def to_katakana(text):
 
-    t = text.lower()
-    t = t.replace("’", "'")  # ★追加（超重要）
+    norm = normalize(text)
 
-    # 数字
-    t = re.sub(r"\d+", lambda m: number_to_katakana(m.group()), t)
+    # 辞書優先
+    if norm in PHRASE_DICT:
+        return tune_katakana(PHRASE_DICT[norm])
 
-    # フレーズ
-    for k, v in sorted(PHRASE_DICT.items(), key=lambda x: -len(x[0])):
-        t = t.replace(k, v)
+    # AI
+    if client is not None:
+        try:
+            res = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": f"{text}\nネイティブの自然な発音でカタカナ化。リンキング・弱形・脱落を反映。カタカナのみ。説明禁止。"
+                }],
+                temperature=0.2
+            )
+            result = res.choices[0].message.content.strip()
+            return tune_katakana(result)
+        except:
+            return text
 
-    # 単語
-    for k, v in WORD_DICT.items():
-        t = t.replace(k, v)
-
-    # 再度フレーズ
-    for k, v in sorted(PHRASE_DICT.items(), key=lambda x: -len(x[0])):
-        t = t.replace(k, v)
-
-    # 記号削除
-    t = re.sub(r"[.,!?]", "", t)
-
-    # 英字削除
-    t = re.sub(r"[a-z]", "", t)
-
-    # 空白整理
-    t = re.sub(r"\s+", " ", t).strip()
-
-    return t
+    return text
 
 # -----------------------
-# 翻訳（★修正）
+# 翻訳
 # -----------------------
-def normalize(text):
-    text = text.lower()
-    text = text.replace("’", "'")  # ★追加
-    text = re.sub(r"[.,!?]", "", text)
-    return text.strip()
-
 def translate(text):
     key = normalize(text)
 
@@ -161,7 +185,6 @@ def translate(text):
 # Jinja
 # -----------------------
 app.jinja_env.globals.update(to_katakana=to_katakana)
-app.jinja_env.globals.update(translate=translate)
 
 # -----------------------
 # ルート
@@ -194,6 +217,8 @@ def add_multi():
         texts = []
         speakers = []
 
+        speaker_toggle = "A"
+
         for line in lines:
             line = line.strip()
             if not line:
@@ -205,17 +230,25 @@ def add_multi():
             elif line.startswith("B:"):
                 speakers.append("B")
                 texts.append(line[2:].strip())
+            else:
+                speakers.append(speaker_toggle)
+                texts.append(line)
+                speaker_toggle = "B" if speaker_toggle == "A" else "A"
 
         conn = get_db()
         cur = conn.execute("INSERT INTO conversations (title) VALUES (?)",(title,))
         conv_id = cur.lastrowid
 
         for i in range(len(texts)):
+
+            jp = translate(texts[i])
+            kana = to_katakana(texts[i])
+
             conn.execute("""
             INSERT INTO messages
-            (conversation_id,speaker,text,japanese)
-            VALUES (?,?,?,?)
-            """,(conv_id,speakers[i],texts[i],translate(texts[i])))
+            (conversation_id,speaker,text,japanese,kana)
+            VALUES (?,?,?,?,?)
+            """,(conv_id,speakers[i],texts[i],jp,kana))
 
         conn.commit()
         conn.close()
@@ -237,6 +270,29 @@ def detail_multi(id):
     ).fetchall()
     conn.close()
     return render_template("detail_multi.html",conv=conv,messages=messages)
+
+# -----------------------
+# 再翻訳
+# -----------------------
+@app.route("/eng/retranslate/<int:id>", methods=["POST"])
+def retranslate(id):
+
+    conn = get_db()
+    m = conn.execute("SELECT * FROM messages WHERE id=?", (id,)).fetchone()
+
+    new_jp = translate(m["text"])
+    new_kana = to_katakana(m["text"])
+
+    conn.execute("""
+    UPDATE messages
+    SET japanese=?, kana=?
+    WHERE id=?
+    """, (new_jp, new_kana, id))
+
+    conn.commit()
+    conn.close()
+
+    return "OK"
 
 # -----------------------
 # 削除

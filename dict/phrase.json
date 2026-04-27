@@ -1,48 +1,61 @@
 {
-  "hello. can i get a": "ハロウ キャナイゲッタ",
-  "can i get a": "キャナイゲッタ",
-  "can i get": "キャナイゲッ",
+  "do you have a reservation": "ジューハヴァ リザベイション",
+  "do you have": "ジューハヴ",
+  "do you": "ジュー",
 
-  "what size would you like": "ワッサイズウッジューライク",
+  "no we don't": "ノー、ウィ ドント",
+  "no we dont": "ノー、ウィ ドント",
 
-  "hot, please": "ホットプリーズ",
-  "medium, please": "ミディアムプリーズ",
-  "to go, please": "トゥゴープリーズ",
+  "what do you recommend": "ワッドゥユー レコメン",
+  "what do you": "ワッドゥユー",
 
-  "for here or to go": "フォーヒアオアトゥゴー",
+  "i would like a steak": "アウッライクァ ステーキ",
+  "i would like a": "アウッライクァ",
+  "i would like": "アウッライク",
 
-  "here you are": "ヒアユアー",
+  "could you speak more slowly": "クッジュー スピーク モア スローリー",
+  "could you": "クッジュー",
 
-  "that will be": "ダウルビー",
-
-  "hot or iced": "ホットオアアイスド",
-
+  "thank you very much": "サンキューベリーマッチ",
   "thank you": "サンキュー",
 
-  "would you": "ウッジュー",
-
-  "do you": "ジュー",
-  
-  "they are over there": "ゼイアーオウヴァゼァ",
-  "will that be all": "ウィルザッビーオール",
-  "they are": "ゼイアー",
-  "over there": "オウヴァゼァ",
-  "excuse me": "エクスキューズミー",
-  "can you help me": "キャンユーヘルプミー",
-  "where is the nearest station": "ウェアイザニアレストステイション",
-  "where is": "ウェアイズ",
-  "go straight": "ゴーストレート",
-  "turn right": "ターンライト",
-  "how long does it take": "ハウロングダズイットテイク",
-  "about five minutes": "アバウトファイブミニッツ",
-  "thank you very much": "サンキューベリーマッチ",
   "you're welcome": "ユアウェルカム",
   "you are welcome": "ユアウェルカム",
-  "go straight and turn right": "ゴーストレート アンド ターンライト",
-  "and": "アンド",
 
-  "you're welcome": "ユアウェルカム",
-  "youre welcome": "ユアウェルカム",
-  "you are welcome": "ユアウェルカム"
+  "excuse me": "エクスキューズミー",
+  "can you help me": "キャンユーヘルプミー",
+
+  "where is the nearest station": "ウェアイザ ニアレストステイション",
+  "where is": "ウェアイズ",
+
+  "go straight and turn right": "ゴーストレート アン ターンライト",
+  "go straight": "ゴーストレート",
+  "turn right": "ターンライト",
+
+  "how long does it take": "ハウロング ダズイットテイク",
+  "about five minutes": "アバウト ファイブミニッツ",
+
+  "here you are": "ヒアユアー",
+  "that will be": "ダウルビー",
+
+  "for here or to go": "フォーヒア オア トゥゴー",
+  "to go please": "トゥゴープリーズ",
+  "for here please": "フォーヒアプリーズ",
+
+  "hot please": "ホットプリーズ",
+  "medium please": "ミディアムプリーズ",
+
+  "what size would you like": "ワッサイズ ウッジューライク",
+
+  "i'll": "アイル",
+  "i will": "アイル",
+
+  "that's": "ザッツ",
+  "that is": "ザッツ",
+
+  "wanna": "ワナ",
+  "going to": "ゴナ",
+  "gonna": "ゴナ",
+  "got to": "ガラ",
+  "gotta": "ガラ"
 }
-

@@ -10,7 +10,6 @@
 🎧 トレーニング
 </button>
 
-<!-- ★ 追加：シャドーイング -->
 <button onclick="shadowingStart()" style="font-size:34px;padding:20px;width:100%;margin:10px;background:#4caf50;color:white;">
 🎤 シャドーイング
 </button>
@@ -49,19 +48,32 @@ background:#fff3e0;
 
 <b style="font-size:30px;">{{ m.speaker }}:</b>
 
-<!-- 英語 -->
 <div style="font-size:60px;">
 {{ m.text }}
 </div>
 
-<!-- カタカナ -->
 <div class="kana" style="font-size:40px;color:#555;">
 {{ to_katakana(m.text) }}
 </div>
 
-<!-- 日本語 -->
 <div class="jp" style="font-size:36px;color:#007bff;">
 {{ m.japanese }}
+</div>
+
+<div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+
+<!-- ★ 修正済み -->
+<button onclick="playOne(this)"
+data-text="{{ m.text }}"
+style="font-size:22px;background:#9c27b0;color:white;padding:8px 12px;border:none;border-radius:6px;">
+▶ 再生
+</button>
+
+<button onclick="retranslate({{ m.id }})"
+style="font-size:22px;background:#2196f3;color:white;padding:8px 12px;border:none;border-radius:6px;">
+🔄 再翻訳
+</button>
+
 </div>
 
 </div>
@@ -79,15 +91,24 @@ style="font-size:30px;padding:20px;width:100%;">
 <script>
 let playing = false;
 let training = false;
-let shadowing = false; // ★追加
+let shadowing = false;
 let index = 0;
 let lines = [];
 
 let kanaVisible = true;
 let jpVisible = true;
 
+let voices = [];
+
+function loadVoices(){
+    voices = speechSynthesis.getVoices();
+}
+
+speechSynthesis.onvoiceschanged = loadVoices;
+
 window.onload = function() {
     lines = document.querySelectorAll(".line");
+    loadVoices();
 };
 
 // 表示切替
@@ -139,7 +160,7 @@ function trainingLoop() {
     setTimeout(trainingLoop, 4000);
 }
 
-// 🎤 シャドーイング（追加）
+// 🎤 シャドーイング
 function shadowingStart() {
     stopAll();
     shadowing = true;
@@ -155,7 +176,7 @@ function shadowLoop() {
     setTimeout(() => {
         index++;
         shadowLoop();
-    }, 4000); // ← 発音時間
+    }, 4000);
 }
 
 // ⏹ 停止
@@ -166,11 +187,37 @@ function stopAll() {
     speechSynthesis.cancel();
 }
 
+// ★ 修正（ここが重要）
+function playOne(btn){
+    stopAll();
+    const text = btn.dataset.text;
+    speak(text);
+}
+
+// 🔄 再翻訳
+function retranslate(id){
+    fetch("/eng/retranslate/" + id, {
+        method: "POST"
+    })
+    .then(() => {
+        location.reload();
+    });
+}
+
 // 音声
 function speak(text) {
+
+    speechSynthesis.cancel();
+
     const uttr = new SpeechSynthesisUtterance(text);
     uttr.lang = 'en-US';
-    uttr.rate = 0.85; // ★ゆっくり（重要）
+    uttr.rate = 0.9;
+
+    if (voices.length > 0) {
+        const enVoice = voices.find(v => v.lang.includes('en'));
+        if (enVoice) uttr.voice = enVoice;
+    }
+
     speechSynthesis.speak(uttr);
 }
 </script>
