@@ -2,6 +2,13 @@
 
 <hr>
 
+<!-- 🔵 全件再変換 -->
+<form method="POST" action="/eng/retranslate_all">
+  <button style="font-size:30px;padding:20px;width:100%;margin:10px;background:#4caf50;color:white;">
+    🔄 全件再変換
+  </button>
+</form>
+
 <button onclick="playAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;">
 ▶ 全体再生
 </button>
@@ -20,7 +27,6 @@
 
 <hr>
 
-<!-- ★ モード切替 -->
 <button onclick="toggleMode()" id="modeBtn"
 style="font-size:30px;padding:16px;width:100%;margin:10px;background:#673ab7;color:white;">
 🎓 学習モード
@@ -39,12 +45,17 @@ style="font-size:30px;padding:16px;width:100%;margin:10px;background:#673ab7;col
 <div id="chat">
 
 {% for m in messages %}
+
+<!-- ★ NGがあるか判定 -->
+{% set has_ng = m.issues|length > 0 %}
+
 <div class="line"
 data-text="{{ m.text }}"
 style="
 margin:20px;
 padding:20px;
 border-radius:12px;
+border:3px solid {% if has_ng %}#f44336{% else %}#ddd{% endif %};
 {% if m.speaker == 'A' %}
 background:#e3f2fd;
 {% else %}
@@ -58,7 +69,7 @@ background:#fff3e0;
 {{ m.text }}
 </div>
 
-<!-- ★ カタカナ（モード対応） -->
+<!-- カタカナ -->
 <div class="kana"
 data-normal="{{ m.kana }}"
 data-native="{{ m.kana_native }}"
@@ -66,9 +77,49 @@ style="font-size:40px;color:#555;">
 {{ m.kana }}
 </div>
 
+<!-- 日本語 -->
 <div class="jp" style="font-size:36px;color:#007bff;">
 {{ m.japanese }}
 </div>
+
+<!-- 🔴 NG表示 -->
+{% if m.issues %}
+<div style="
+margin-top:10px;
+padding:12px;
+background:#ffebee;
+color:#d32f2f;
+font-size:24px;
+border-radius:10px;
+font-weight:bold;">
+⚠ NG:
+{% for i in m.issues %}
+    {% if i == "translation_missing" %} 翻訳NG{% endif %}
+    {% if i == "kana_missing" %} 発音未生成{% endif %}
+    {% if i == "kana_short" %} 発音NG{% endif %}
+    {% if not loop.last %}, {% endif %}
+{% endfor %}
+</div>
+{% endif %}
+
+<!-- 🟡 注意表示 -->
+{% if m.warnings %}
+<div style="
+margin-top:10px;
+padding:10px;
+background:#fff8e1;
+color:#ff9800;
+font-size:22px;
+border-radius:10px;
+font-weight:bold;">
+⚠ 注意:
+{% for w in m.warnings %}
+    {% if w == "kana_missing_soft" %} 発音未登録{% endif %}
+    {% if w == "contains_number" %} 数値{% endif %}
+    {% if not loop.last %}, {% endif %}
+{% endfor %}
+</div>
+{% endif %}
 
 <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
 
@@ -107,9 +158,7 @@ let lines = [];
 let kanaVisible = true;
 let jpVisible = true;
 
-// ★ モード
 let nativeMode = false;
-
 let voices = [];
 
 function loadVoices(){
@@ -123,9 +172,7 @@ window.onload = function() {
     loadVoices();
 };
 
-// --------------------
-// モード切替（重要）
-// --------------------
+// モード切替
 function toggleMode(){
 
     nativeMode = !nativeMode;
@@ -164,7 +211,7 @@ function toggleJP(){
     });
 }
 
-// ▶ 全体再生
+// 再生系
 function playAll() {
     stopAll();
     playing = true;
@@ -174,14 +221,11 @@ function playAll() {
 
 function playLoop() {
     if (!playing || index >= lines.length) return;
-
     speak(lines[index].dataset.text);
     index++;
-
     setTimeout(playLoop, 2500);
 }
 
-// 🎧 トレーニング
 function trainingAll() {
     stopAll();
     training = true;
@@ -191,14 +235,11 @@ function trainingAll() {
 
 function trainingLoop() {
     if (!training || index >= lines.length) return;
-
     speak(lines[index].dataset.text);
     index++;
-
     setTimeout(trainingLoop, 4000);
 }
 
-// 🎤 シャドーイング
 function shadowingStart() {
     stopAll();
     shadowing = true;
@@ -208,16 +249,13 @@ function shadowingStart() {
 
 function shadowLoop() {
     if (!shadowing || index >= lines.length) return;
-
     speak(lines[index].dataset.text);
-
     setTimeout(() => {
         index++;
         shadowLoop();
     }, 4000);
 }
 
-// ⏹ 停止
 function stopAll() {
     playing = false;
     training = false;
@@ -225,27 +263,20 @@ function stopAll() {
     speechSynthesis.cancel();
 }
 
-// ▶ 個別再生
 function playOne(btn){
     stopAll();
     speak(btn.dataset.text);
 }
 
-// 🔄 再翻訳
+// 🔄 再翻訳（個別）
 function retranslate(id){
-    fetch("/eng/retranslate/" + id, {
-        method: "POST"
-    })
-    .then(() => {
-        location.reload();
-    });
+    fetch("/eng/retranslate/" + id, { method: "POST" })
+    .then(() => location.reload());
 }
 
 // 音声
 function speak(text) {
-
     speechSynthesis.cancel();
-
     const uttr = new SpeechSynthesisUtterance(text);
     uttr.lang = 'en-US';
     uttr.rate = 0.9;

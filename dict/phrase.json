@@ -8,7 +8,7 @@
   "hello can i get a coffee": "ハロー キャナイ ゲッラ コーヒー",
   "can i get a coffee": "キャナイ ゲッラ コーヒー",
 
-  "sure hot or iced": "シャーラァイスド",
+  "sure hot or iced": "シャー ハラァイスド",
   "hot or iced": "ハラァイスド",
   "sure": "シャー",
 
@@ -16,20 +16,23 @@
   "medium please": "ミディアム プリーズ",
 
   "what size would you like": "ワッ サイズ ウッジュー ライク",
-  "would you like anything else": "ウッジュー ライク エニシンネルス",
+  "would you like anything else": "ウッジュー ライク エニシン エルス",
 
   "yes a sandwich please": "イエスァ サンドイッチ プリーズ",
 
   "for here or to go": "フォーヒア オア トゥゴウ",
   "to go": "トゥゴウ",
 
-  "that will be 750 yen": "ザルビ セブンフィフティ イェン",
-  "that will be": "ザルビ",
+  "that will be 450 yen": "ザット ウィル ビー フォーフィフティ イェン",
+  "that will be 600 yen": "ザット ウィル ビー シックスハンドレッド イェン",
+  "that will be 750 yen": "ザット ウィル ビー セブンフィフティ イェン",
+  "that will be 999 yen": "ザット ウィル ビー ナインナインナイン イェン",
+  "that will be": "ザット ウィル ビー",
 
-  "here you are": "ヒアユア",
+  "here you are": "ヒア ユー アー",
 
-  "thank you your order will be ready soon": "サンキュー ヨー オーダ ウィルビ レディ スーン",
-  "your order will be ready soon": "ヨー オーダ ウィルビ レディ スーン",
+  "thank you your order will be ready soon": "サンキュー ヨー オーダー ウィル ビー レディ スーン",
+  "your order will be ready soon": "ヨー オーダー ウィル ビー レディ スーン",
 
   "thank you": "サンキュー",
   "thanks": "サンクス",
