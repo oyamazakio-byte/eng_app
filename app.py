@@ -4,16 +4,16 @@ import re
 import json
 import os
 from werkzeug.middleware.proxy_fix import ProxyFix
-from openai import OpenAI
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 DB_NAME = "/home/bitnami/eng_app/conversation.db"
 DICT_DIR = "/home/bitnami/eng_app/dict"
 
+# -----------------------
+# JSON読み込み
+# -----------------------
 def load_json(path):
     try:
         if os.path.exists(path):
@@ -26,6 +26,9 @@ def load_json(path):
 PHRASE_DICT = load_json(f"{DICT_DIR}/phrase.json")
 TRANSLATE_DICT = load_json(f"{DICT_DIR}/translate.json")
 
+# -----------------------
+# 正規化
+# -----------------------
 def normalize(text):
     text = text.lower()
     text = text.replace("’", "'")
@@ -33,15 +36,16 @@ def normalize(text):
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
+# -----------------------
+# DB
+# -----------------------
 def get_db():
-    conn = sqlite3.connect(DB_NAME, timeout=10)
+    conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_db()
-    conn.execute("PRAGMA journal_mode=WAL;")
-
     conn.execute("""
     CREATE TABLE IF NOT EXISTS conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,39 +69,17 @@ def init_db():
     conn.close()
 
 # -----------------------
-# 発音調整（強化版）
+# 発音調整
 # -----------------------
 def tune_katakana(text):
 
-    # リンキング
     text = text.replace("ドゥ ユー", "ドゥヤ")
-    text = text.replace("ドゥユー", "ドゥヤ")
     text = text.replace("ゲット ア", "ゲッラ")
     text = text.replace("ハヴ ア", "ハヴァ")
-    text = text.replace("ヒア イズ", "ヒアリズ")
-
-    # would you
     text = text.replace("ウッド ユー", "ウッジュー")
-    text = text.replace("ウッドゥヤ", "ウッジュー")
-    text = text.replace("ワッユ", "ウッジュー")
 
-    # 発音修正
-    text = text.replace("ハブ", "ハヴ")
-    text = text.replace("リコメンド", "レコメンド")
-    text = text.replace("レコメンドド", "レコメンド")
     text = text.replace("レコメン", "レコメンド")
-    text = text.replace("レザベーション", "リザベーション")
-
-    # 弱音
-    text = text.replace("ジャスト", "ジャス")
-    text = text.replace("ホット", "ハッ")
-
-    # 誤変換除去
-    text = text.replace("ジュー", "ドゥヤ")
-
-    # アイル単独対策
-    if text.strip() == "アイル":
-        return "アイル ハヴ"
+    text = text.replace("ハブ", "ハヴ")
 
     return re.sub(r"\s+", " ", text).strip()
 
@@ -105,130 +87,51 @@ def tune_katakana(text):
 # カタカナ
 # -----------------------
 def to_katakana(text):
-
     norm = normalize(text)
 
+    # 完全一致
     if norm in PHRASE_DICT:
         return tune_katakana(PHRASE_DICT[norm])
 
-    try:
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{
-                "role": "user",
-                "content": f"{text}\nカタカナのみ。1行。説明禁止。"
-            }],
-            temperature=0.2
-        )
+    # 部分一致（安全）
+    for k, v in sorted(PHRASE_DICT.items(), key=lambda x: -len(x[0])):
+        if len(k.split()) >= 3 and k in norm:
+            return tune_katakana(v)
 
-        result = res.choices[0].message.content.strip().split("\n")[0]
-        result = re.sub(r"[「」\"。]", "", result)
+    return text
 
-        return tune_katakana(result)
-
-    except:
-        return text
-
-# -----------------------
-# ネイティブ
-# -----------------------
 def to_katakana_native(text):
-
-    norm = normalize(text)
-
-    if norm in PHRASE_DICT:
-        return tune_katakana(PHRASE_DICT[norm])
-
-    try:
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{
-                "role": "user",
-                "content": f"""
-{text}
-英語の音だけをカタカナにする
-・意味変更禁止
-・単語追加禁止
-・説明禁止
-・カタカナのみ
-・1行
-"""
-            }],
-            temperature=0
-        )
-
-        result = res.choices[0].message.content.strip().split("\n")[0]
-        result = re.sub(r"[「」\"。]", "", result)
-
-        # 🔥 日本語混入完全ブロック
-        if re.search(r"[ぁ-んァ-ン一-龥]", result):
-            return to_katakana(text)
-
-        # 英語混入防止
-        if re.search(r"[a-zA-Z]", result):
-            return to_katakana(text)
-
-        # 短すぎ防止
-        if len(result) < 5:
-            return to_katakana(text)
-
-        return tune_katakana(result)
-
-    except:
-        return to_katakana(text)
+    return to_katakana(text)
 
 # -----------------------
-# 翻訳（強化版）
+# 翻訳（最重要改善）
 # -----------------------
 def translate(text):
     key = normalize(text)
 
-    if "good evening" in key:
-        return "こんばんは。ご予約はありますか？"
-
-    if "no we don't" in key:
-        return "いいえ、ありません"
-
-    if "what do you recommend" in key:
-        return "おすすめは何ですか？"
-
-    if "sure hot or iced" in key:
-        return "かしこまりました。ホットかアイス、どちらにしますか？"
-
-    for k, v in TRANSLATE_DICT.items():
-        if normalize(k) == key:
-            return v
-
+    # ★金額対応（最優先）
     m = re.search(r"that will be (\d+) yen", key)
     if m:
         return f"お会計は{m.group(1)}円です"
 
-    if "hello can i get a coffee" in key:
-        return "こんにちは。コーヒーをください。"
+    # ★Sure対応
+    if "sure" in key and "hot or iced" in key:
+        return "かしこまりました。ホットかアイス、どちらにしますか？"
 
-    if "can i get a coffee" in key:
-        return "コーヒーをください"
+    # 完全一致
+    if key in TRANSLATE_DICT:
+        return TRANSLATE_DICT[key]
 
-    if "hot or iced" in key:
-        return "ホットかアイス、どちらにしますか？"
-
-    if "would you like anything else" in key:
-        return "他にご注文はありますか？"
-
-    if "for here or to go" in key:
-        return "店内ですか？お持ち帰りですか？"
-
-    if key == "to go":
-        return "持ち帰りでお願いします"
-
-    if "yes a sandwich please" in key:
-        return "サンドイッチをお願いします"
-
-    if "your order will be ready soon" in key:
-        return "ご注文はすぐにご用意できます"
+    # 部分一致
+    for k, v in sorted(TRANSLATE_DICT.items(), key=lambda x: -len(x[0])):
+        if k in key:
+            return v
 
     return text
 
+# -----------------------
+# ルート
+# -----------------------
 @app.route("/")
 @app.route("/eng/")
 def index():
@@ -311,6 +214,22 @@ def detail_multi(id):
 
     return render_template("detail_multi.html",conv=conv,messages=messages)
 
+# -----------------------
+# 削除
+# -----------------------
+@app.route("/delete/<int:id>", methods=["POST"])
+@app.route("/eng/delete/<int:id>", methods=["POST"])
+def delete(id):
+    conn = get_db()
+    conn.execute("DELETE FROM conversations WHERE id=?", (id,))
+    conn.execute("DELETE FROM messages WHERE conversation_id=?", (id,))
+    conn.commit()
+    conn.close()
+    return redirect("/eng/")
+
+# -----------------------
+# 再変換
+# -----------------------
 @app.route("/retranslate_all", methods=["POST"])
 @app.route("/eng/retranslate_all", methods=["POST"])
 def retranslate_all():
@@ -337,15 +256,9 @@ def retranslate_all():
 
     return redirect("/eng/")
 
-@app.route("/delete/<int:id>", methods=["POST"])
-def delete(id):
-    conn = get_db()
-    conn.execute("DELETE FROM conversations WHERE id=?", (id,))
-    conn.execute("DELETE FROM messages WHERE conversation_id=?", (id,))
-    conn.commit()
-    conn.close()
-    return redirect("/eng/")
-
+# -----------------------
+# 起動
+# -----------------------
 if __name__=="__main__":
     init_db()
     app.run(host="0.0.0.0",port=5005)

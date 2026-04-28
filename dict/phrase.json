@@ -1,84 +1,103 @@
 {
-  "hello can i get a coffee": "ハロー キャナイ ゲッラ コーヒー",
+  "good morning": "グッ モーニン",
+  "good afternoon": "グッ アフタヌーン",
+  "good evening": "グッ イブニング",
   "hello": "ハロー",
+  "hi": "ハイ",
 
-  "do you have a reservation": "ドゥヤ ハヴァ リザベイション",
-
+  "hello can i get a coffee": "ハロー キャナイ ゲッラ コーヒー",
   "can i get a coffee": "キャナイ ゲッラ コーヒー",
-  "can i get": "キャナイ ゲッ",
 
-  "i would like a sandwich": "アウッライクァ サンドイッチ",
-  "i would like a steak": "アウッライクァ ステーキ",
-  "i would like a": "アウッライクァ",
-  "i would like": "アウッライク",
-
-  "would you like anything else": "ウッジュー ライク エニシン エルス",
-  "anything else": "エニシン エルス",
-
-  "what do you recommend": "ワッ ドゥヤ レコメンド",
-  "what do you": "ワッ ドゥヤ",
-
-  "what size would you like": "ワッ サイズ ウッジュー ライク",
-
-  "sure hot or iced": "シュア ハロァイスド",
-  "hot or iced": "ハロァイスド",
-
-  "for here or to go": "フォー ヒア オア トゥゴウ",
-  "for here please": "フォー ヒア プリーズ",
-  "to go please": "トゥゴウ プリーズ",
-  "to go": "トゥゴウ",
+  "sure hot or iced": "シャーラァイスド",
+  "hot or iced": "ハラァイスド",
+  "sure": "シャー",
 
   "hot please": "ハッ プリーズ",
   "medium please": "ミディアム プリーズ",
 
+  "what size would you like": "ワッ サイズ ウッジュー ライク",
+  "would you like anything else": "ウッジュー ライク エニシンネルス",
+
   "yes a sandwich please": "イエスァ サンドイッチ プリーズ",
-  "yes please": "イエス プリーズ",
-  "yes": "イエス",
 
-  "sure": "シュア",
+  "for here or to go": "フォーヒア オア トゥゴウ",
+  "to go": "トゥゴウ",
 
-  "that will be 750 yen": "ザルビー セブンフィフティ イェン",
+  "that will be 750 yen": "ザルビ セブンフィフティ イェン",
+  "that will be": "ザルビ",
 
-  "here you are": "ヒア ユー アー",
+  "here you are": "ヒアユア",
 
-  "thank you your order will be ready soon": "サンキュー ヨー オーダー ウィルビー レディ スーン",
-  "your order will be ready soon": "ヨー オーダー ウィルビー レディ スーン",
+  "thank you your order will be ready soon": "サンキュー ヨー オーダ ウィルビ レディ スーン",
+  "your order will be ready soon": "ヨー オーダ ウィルビ レディ スーン",
 
-  "thank you very much": "サンキュー ベリー マッチ",
   "thank you": "サンキュー",
+  "thanks": "サンクス",
+  "youre welcome": "ユア ウェルカム",
 
-  "you're welcome": "ユア ウェルカム",
-  "you are welcome": "ユア ウェルカム",
+  "how are you": "ハウ アーユー",
+  "im fine": "アイム ファイン",
+  "nice to meet you": "ナイス トゥ ミーチュー",
 
-  "excuse me": "イクスキューズ ミー",
-  "can you help me": "キャン ユー ヘルプ ミー",
+  "do you have a reservation": "ドゥヤ ハヴァ リザベイション",
+  "no we dont": "ノー ウィ ドント",
+  "thats fine": "ザッツ ファイン",
 
-  "could you speak more slowly": "クッジュー スピーク モア スローリー",
-  "could you": "クッジュー",
-  "would you": "ウッジュー",
-  "did you": "ディジュー",
+  "please come this way": "プリーズ カム ディス ウェイ",
+  "here is the menu": "ヒアリズ ザ メニュー",
 
-  "do you have": "ドゥヤ ハヴ",
-  "do you": "ドゥヤ",
+  "what do you recommend": "ワッ ドゥヤ レコメンド",
+  "our steak is very popular": "アワ ステーキ イズ ベリー パピュラー",
 
-  "where is the nearest station": "ウェアリズ ザ ニアレスト ステイション",
-  "where is": "ウェアリズ",
+  "ill have the steak": "アイル ハヴ ザ ステーキ",
+  "how would you like it cooked": "ハウ ウッジュー ライク イット クックト",
 
-  "go straight and turn right": "ゴー ストレイト アン ターン ライト",
+  "just water please": "ジャス ウォーター プリーズ",
+  "and something to drink": "アンド サムシン トゥ ドリンク",
+
+  "how much is this": "ハウ マッチ イズ ディス",
+  "its five dollars": "イッツ ファイブ ダラーズ",
+
+  "see you later": "スィーユー レイター",
+  "see you tomorrow": "スィーユー トゥモロー",
+
+  "what time is it": "ワッ タイム イズ イット",
+  "its three oclock": "イッツ スリー オクロック",
+
+  "where is the station": "ウェア イズ ザ ステイション",
   "go straight": "ゴー ストレイト",
   "turn right": "ターン ライト",
 
-  "how long does it take": "ハウ ロング ダズィット テイク",
-  "about five minutes": "アバウト ファイブ ミニッツ",
+  "im hungry": "アイム ハングリー",
+  "lets eat": "レッツ イート",
 
-  "i will": "アイル",
+  "this is delicious": "ディス イズ デリシャス",
+  "check please": "チェック プリーズ",
 
-  "that's": "ザッツ",
-  "that is": "ザッツ",
+  "help me": "ヘルプ ミー",
+  "call me later": "コール ミー レイター",
 
-  "wanna": "ワナ",
-  "going to": "ゴナ",
-  "gonna": "ゴナ",
-  "got to": "ガラ",
-  "gotta": "ガラ"
+  "what are you doing": "ワッ アーユー ドゥーイング",
+  "im studying english": "アイム スタディング イングリッシュ",
+
+  "lets go": "レッツ ゴー",
+  "come here": "カム ヒア",
+
+  "wait a minute": "ウェイト ア ミニット",
+  "just a second": "ジャス ア セカンド",
+
+  "i dont know": "アイ ドント ノウ",
+  "i think so": "アイ シンク ソウ",
+
+  "are you ok": "アーユー オーケー",
+  "im tired": "アイム タイアード",
+
+  "good job": "グッ ジョブ",
+  "thats great": "ザッツ グレイト",
+
+  "what do you mean": "ワッ ドゥヤ ミーン",
+  "sounds good": "サウンズ グッド",
+
+  "lets start": "レッツ スタート",
+  "lets finish": "レッツ フィニッシュ"
 }

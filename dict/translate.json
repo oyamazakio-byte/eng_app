@@ -1,38 +1,97 @@
 {
-  "hello.": "こんにちは。",
-  "hi.": "やあ。",
+  "hello": "こんにちは。",
+  "hi": "やあ。",
 
-  "hot, please.": "ホットでお願いします。",
-  "hot, please": "ホットでお願いします。",
-  "hot please.": "ホットでお願いします。",
+  "hello can i get a coffee": "こんにちは。コーヒーをください。",
+  "can i get a coffee": "コーヒーをください。",
+
+  "sure": "かしこまりました。",
+  "hot or iced": "ホットかアイス、どちらにしますか？",
+
   "hot please": "ホットでお願いします。",
-
-  "medium, please.": "ミディアムでお願いします。",
-  "medium, please": "ミディアムでお願いします。",
-  "medium please.": "ミディアムでお願いします。",
   "medium please": "ミディアムでお願いします。",
 
-  "to go, please.": "持ち帰りでお願いします。",
-  "to go, please": "持ち帰りでお願いします。",
-  "to go please.": "持ち帰りでお願いします。",
-  "to go please": "持ち帰りでお願いします。",
+  "what size would you like": "どのサイズになさいますか？",
+  "would you like anything else": "他にご注文はありますか？",
 
-  "here you are.": "はい、どうぞ。",
+  "yes a sandwich please": "サンドイッチをお願いします。",
+
+  "for here or to go": "店内ですか？お持ち帰りですか？",
+  "to go": "持ち帰りでお願いします。",
+
+  "that will be": "お会計は〜円です。",
+
   "here you are": "はい、どうぞ。",
 
-  "what size would you like?": "どのサイズになさいますか？",
-  "what size would you like": "どのサイズになさいますか？",
+  "your order will be ready soon": "ご注文はすぐにご用意できます。",
 
-  "that will be 450 yen.": "450円になります。",
-  "that will be 600 yen.": "600円になります。",
-
-  "thank you.": "ありがとうございます。",
   "thank you": "ありがとうございます。",
-  "excuse me, can you help me?": "すみません、手伝っていただけますか？",
-  "where is the nearest station?": "最寄りの駅はどこですか？",
-  "go straight and turn right.": "まっすぐ進んで右に曲がってください。",
-  "how long does it take?": "どのくらい時間がかかりますか？",
-  "about five minutes.": "約5分です。",
-  "thank you very much.": "どうもありがとうございます。",
-  "you're welcome.": "どういたしまして。"
+  "thanks": "ありがとうございます。",
+  "youre welcome": "どういたしまして。",
+
+  "excuse me": "すみません。",
+  "can you help me": "手伝っていただけますか？",
+
+  "where is the nearest station": "最寄りの駅はどこですか？",
+  "go straight and turn right": "まっすぐ進んで右に曲がってください。",
+  "how long does it take": "どのくらい時間がかかりますか？",
+  "about five minutes": "約5分です。",
+
+  "how are you": "お元気ですか？",
+  "im fine": "元気です。",
+
+  "nice to meet you": "はじめまして。",
+
+  "what do you recommend": "おすすめは何ですか？",
+  "our steak is very popular": "ステーキがとても人気です。",
+
+  "ill have the steak": "ステーキをお願いします。",
+  "how would you like it cooked": "焼き加減はどうなさいますか？",
+
+  "just water please": "お水でお願いします。",
+  "and something to drink": "お飲み物はいかがですか？",
+
+  "how much is this": "これはいくらですか？",
+
+  "see you later": "また後で。",
+  "see you tomorrow": "また明日。",
+
+  "what time is it": "今何時ですか？",
+
+  "where is the station": "駅はどこですか？",
+  "go straight": "まっすぐ進んでください。",
+  "turn right": "右に曲がってください。",
+
+  "im hungry": "お腹が空きました。",
+  "lets eat": "食べましょう。",
+
+  "this is delicious": "とても美味しいです。",
+  "check please": "お会計をお願いします。",
+
+  "help me": "助けてください。",
+  "call me later": "あとで電話してください。",
+
+  "what are you doing": "何をしていますか？",
+  "im studying english": "英語を勉強しています。",
+
+  "lets go": "行きましょう。",
+  "come here": "こちらに来てください。",
+
+  "wait a minute": "ちょっと待ってください。",
+  "just a second": "少々お待ちください。",
+
+  "i dont know": "わかりません。",
+  "i think so": "そう思います。",
+
+  "are you ok": "大丈夫ですか？",
+  "im tired": "疲れました。",
+
+  "good job": "よくできました。",
+  "thats great": "いいですね。",
+
+  "what do you mean": "どういう意味ですか？",
+  "sounds good": "いいですね。",
+
+  "lets start": "始めましょう。",
+  "lets finish": "終わりましょう。"
 }
