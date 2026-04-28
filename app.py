@@ -9,15 +9,9 @@ from openai import OpenAI
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
 
-# -----------------------
-# APIキー
-# -----------------------
-client = OpenAI()
-DB_NAME = "/home/bitnami/eng_app/conversation.db"
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# -----------------------
-# 辞書
-# -----------------------
+DB_NAME = "/home/bitnami/eng_app/conversation.db"
 DICT_DIR = "/home/bitnami/eng_app/dict"
 
 def load_json(path):
@@ -32,9 +26,6 @@ def load_json(path):
 PHRASE_DICT = load_json(f"{DICT_DIR}/phrase.json")
 TRANSLATE_DICT = load_json(f"{DICT_DIR}/translate.json")
 
-# -----------------------
-# 正規化
-# -----------------------
 def normalize(text):
     text = text.lower()
     text = text.replace("’", "'")
@@ -42,9 +33,6 @@ def normalize(text):
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
-# -----------------------
-# DB
-# -----------------------
 def get_db():
     conn = sqlite3.connect(DB_NAME, timeout=10)
     conn.row_factory = sqlite3.Row
@@ -77,48 +65,51 @@ def init_db():
     conn.close()
 
 # -----------------------
-# 発音チューニング（最終版）
+# 発音調整（強化版）
 # -----------------------
 def tune_katakana(text):
 
-    text = text.replace(" ア ", "ァ ")
-    text = text.replace(" ア", "ァ")
-
-    text = text.replace("ライク ア", "ライクァ")
+    # リンキング
+    text = text.replace("ドゥ ユー", "ドゥヤ")
+    text = text.replace("ドゥユー", "ドゥヤ")
+    text = text.replace("ゲット ア", "ゲッラ")
     text = text.replace("ハヴ ア", "ハヴァ")
+    text = text.replace("ヒア イズ", "ヒアリズ")
 
-    text = text.replace("ドゥ ユー", "ジュー")
-    text = text.replace("ドゥユー", "ジュー")
+    # would you
+    text = text.replace("ウッド ユー", "ウッジュー")
+    text = text.replace("ウッドゥヤ", "ウッジュー")
+    text = text.replace("ワッユ", "ウッジュー")
 
-    text = text.replace("ドゥント", "ドント")
-
-    text = text.replace("ワット ドゥ ユー", "ワッドゥユー")
-    text = text.replace("ワット ジュー", "ワッドゥユー")
-
-    # ★今回の最重要修正
-    text = text.replace("ワッジュー", "ワッドゥユー")
-
-    text = text.replace("アイ ウッド ライク", "アウッライク")
-
+    # 発音修正
+    text = text.replace("ハブ", "ハヴ")
+    text = text.replace("リコメンド", "レコメンド")
+    text = text.replace("レコメンドド", "レコメンド")
+    text = text.replace("レコメン", "レコメンド")
     text = text.replace("レザベーション", "リザベーション")
-    text = text.replace("レコメンド", "レコメン")
 
-    text = text.replace("アウッ ライク", "アウッライク")
-    text = text.replace("アウッ ライクァ", "アウッライクァ")
+    # 弱音
+    text = text.replace("ジャスト", "ジャス")
+    text = text.replace("ホット", "ハッ")
+
+    # 誤変換除去
+    text = text.replace("ジュー", "ドゥヤ")
+
+    # アイル単独対策
+    if text.strip() == "アイル":
+        return "アイル ハヴ"
 
     return re.sub(r"\s+", " ", text).strip()
 
 # -----------------------
-# カタカナ（通常）
+# カタカナ
 # -----------------------
 def to_katakana(text):
 
     norm = normalize(text)
 
-    # ★長いフレーズ優先（重要）
-    for k, v in sorted(PHRASE_DICT.items(), key=lambda x: -len(x[0])):
-        if normalize(k) in norm:
-            return tune_katakana(v)
+    if norm in PHRASE_DICT:
+        return tune_katakana(PHRASE_DICT[norm])
 
     try:
         res = client.chat.completions.create(
@@ -130,8 +121,7 @@ def to_katakana(text):
             temperature=0.2
         )
 
-        result = res.choices[0].message.content.strip()
-        result = result.split("\n")[0]
+        result = res.choices[0].message.content.strip().split("\n")[0]
         result = re.sub(r"[「」\"。]", "", result)
 
         return tune_katakana(result)
@@ -146,10 +136,8 @@ def to_katakana_native(text):
 
     norm = normalize(text)
 
-    # ★長いフレーズ優先（重要）
-    for k, v in sorted(PHRASE_DICT.items(), key=lambda x: -len(x[0])):
-        if normalize(k) in norm:
-            return tune_katakana(v)
+    if norm in PHRASE_DICT:
+        return tune_katakana(PHRASE_DICT[norm])
 
     try:
         res = client.chat.completions.create(
@@ -158,11 +146,8 @@ def to_katakana_native(text):
                 "role": "user",
                 "content": f"""
 {text}
-
 英語の音だけをカタカナにする
-
-ルール：
-・意味を変えない
+・意味変更禁止
 ・単語追加禁止
 ・説明禁止
 ・カタカナのみ
@@ -172,14 +157,18 @@ def to_katakana_native(text):
             temperature=0
         )
 
-        result = res.choices[0].message.content.strip()
-        result = result.split("\n")[0]
+        result = res.choices[0].message.content.strip().split("\n")[0]
         result = re.sub(r"[「」\"。]", "", result)
-        result = re.sub(r"→.*", "", result).strip()
 
+        # 🔥 日本語混入完全ブロック
+        if re.search(r"[ぁ-んァ-ン一-龥]", result):
+            return to_katakana(text)
+
+        # 英語混入防止
         if re.search(r"[a-zA-Z]", result):
             return to_katakana(text)
 
+        # 短すぎ防止
         if len(result) < 5:
             return to_katakana(text)
 
@@ -189,35 +178,57 @@ def to_katakana_native(text):
         return to_katakana(text)
 
 # -----------------------
-# 翻訳
+# 翻訳（強化版）
 # -----------------------
 def translate(text):
     key = normalize(text)
+
+    if "good evening" in key:
+        return "こんばんは。ご予約はありますか？"
+
+    if "no we don't" in key:
+        return "いいえ、ありません"
+
+    if "what do you recommend" in key:
+        return "おすすめは何ですか？"
+
+    if "sure hot or iced" in key:
+        return "かしこまりました。ホットかアイス、どちらにしますか？"
 
     for k, v in TRANSLATE_DICT.items():
         if normalize(k) == key:
             return v
 
-    if "do you have a reservation" in key:
-        return "予約はありますか？"
+    m = re.search(r"that will be (\d+) yen", key)
+    if m:
+        return f"お会計は{m.group(1)}円です"
 
-    if "what do you recommend" in key:
-        return "何をおすすめしますか？"
+    if "hello can i get a coffee" in key:
+        return "こんにちは。コーヒーをください。"
 
-    if "no we don't" in key or "no we dont" in key:
-        return "いいえ、ありません"
+    if "can i get a coffee" in key:
+        return "コーヒーをください"
 
-    if "i would like a steak" in key:
-        return "ステーキをお願いします"
+    if "hot or iced" in key:
+        return "ホットかアイス、どちらにしますか？"
 
-    if "i would like" in key:
-        return "〜をお願いします"
+    if "would you like anything else" in key:
+        return "他にご注文はありますか？"
+
+    if "for here or to go" in key:
+        return "店内ですか？お持ち帰りですか？"
+
+    if key == "to go":
+        return "持ち帰りでお願いします"
+
+    if "yes a sandwich please" in key:
+        return "サンドイッチをお願いします"
+
+    if "your order will be ready soon" in key:
+        return "ご注文はすぐにご用意できます"
 
     return text
 
-# -----------------------
-# ルート
-# -----------------------
 @app.route("/")
 @app.route("/eng/")
 def index():
@@ -267,15 +278,15 @@ def add_multi():
         for i in range(len(texts)):
             text = texts[i]
 
-            jp = translate(text)
-            kana = to_katakana(text)
-            kana_native = to_katakana_native(text)
-
             conn.execute("""
             INSERT INTO messages
             (conversation_id,speaker,text,japanese,kana,kana_native)
             VALUES (?,?,?,?,?,?)
-            """,(conv_id,speakers[i],text,jp,kana,kana_native))
+            """,(conv_id,speakers[i],text,
+                translate(text),
+                to_katakana(text),
+                to_katakana_native(text)
+            ))
 
         conn.commit()
         conn.close()
@@ -300,6 +311,32 @@ def detail_multi(id):
 
     return render_template("detail_multi.html",conv=conv,messages=messages)
 
+@app.route("/retranslate_all", methods=["POST"])
+@app.route("/eng/retranslate_all", methods=["POST"])
+def retranslate_all():
+
+    conn = get_db()
+    messages = conn.execute("SELECT * FROM messages").fetchall()
+
+    for m in messages:
+        text = m["text"]
+
+        conn.execute("""
+        UPDATE messages
+        SET japanese=?, kana=?, kana_native=?
+        WHERE id=?
+        """, (
+            translate(text),
+            to_katakana(text),
+            to_katakana_native(text),
+            m["id"]
+        ))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/eng/")
+
 @app.route("/delete/<int:id>", methods=["POST"])
 def delete(id):
     conn = get_db()
@@ -309,17 +346,6 @@ def delete(id):
     conn.close()
     return redirect("/eng/")
 
-# -----------------------
-# Jinja登録
-# -----------------------
-app.jinja_env.globals.update(
-    to_katakana=to_katakana,
-    to_katakana_native=to_katakana_native
-)
-
-# -----------------------
-# 起動
-# -----------------------
 if __name__=="__main__":
     init_db()
     app.run(host="0.0.0.0",port=5005)
