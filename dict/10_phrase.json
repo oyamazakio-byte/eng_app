@@ -2,11 +2,14 @@
   "good morning": "グッ モーニン",
   "good afternoon": "グッ アフタヌーン",
   "good evening": "グッ イブニング",
+  "good evening do you have a reservation": "グッ イブニング ドゥ ユー ハヴ ア リザベイション",
+
   "hello": "ハロー",
   "hi": "ハイ",
 
-  "hello can i get a coffee": "ハロー キャナイ ゲッラ コーヒー",
-  "can i get a coffee": "キャナイ ゲッラ コーヒー",
+  "hello can i get a coffee": "ハロー キャナイ ゲラ コーヒー",
+  
+  
 
   "sure hot or iced": "シャー ハラァイスド",
   "hot or iced": "ハラァイスド",
@@ -67,7 +70,7 @@
   "what time is it": "ワッ タイム イズ イット",
   "its three oclock": "イッツ スリー オクロック",
 
-  "where is the station": "ウェア イズ ザ ステイション",
+  "where is the station": "ウェア イズ ザ ステーション",
   "go straight": "ゴー ストレイト",
   "turn right": "ターン ライト",
 
@@ -102,5 +105,24 @@
   "sounds good": "サウンズ グッド",
 
   "lets start": "レッツ スタート",
-  "lets finish": "レッツ フィニッシュ"
+  "lets finish": "レッツ フィニッシュ",
+  "ok": "オーケー",
+  "may i have your name please": "メイ アイ ハヴ ユア ネイム プリーズ",
+"my name is osamu": "マイ ネイム イズ オサム",
+"how many nights will you stay": "ハウ メニー ナイツ ウィル ユー ステイ",
+"two nights": "トゥー ナイツ",
+"great": "グレイト",
+"here is your room key": "ヒア イズ ユア ルーム キー",
+"from 7 to 10 am": "フロム セブン トゥ テン エーエム",
+"could you help me": "クッジュー ヘルプ ミー",
+"i am looking for": "アイム ルッキング フォー",
+"where can i find": "ウェア キャナイ ファインド",
+"want to": "ワナ",
+"going to": "ゴナ",
+"have to": "ハフタ",
+"can i get a coffee": "キャナイ ゲラ コーヒー",
+"is this seat taken": "イズ ディス シート テイケン",
+"excuse me is this seat taken": "イクスキューズ ミー イズ ディス シート テイケン"
+
+
 }

@@ -1,6 +1,7 @@
 {
   "hello": "こんにちは。",
   "hi": "やあ。",
+  "yes": "はい。",
 
   "hello can i get a coffee": "こんにちは。コーヒーをください。",
   "can i get a coffee": "コーヒーをください。",
@@ -94,5 +95,21 @@
 
   "lets start": "始めましょう。",
   "lets finish": "終わりましょう。",
-  "test sentence": "テスト文です"
+
+  "test sentence": "テスト文です",
+
+  "good evening do you have a reservation": "こんばんは。ご予約はありますか？",
+  "no we dont": "いいえ、ありません。",
+  "thats fine": "問題ありません。",
+  "please come this way": "こちらへどうぞ。",
+  "here is the menu": "こちらがメニューです。",
+
+  "may i have your name please": "お名前をいただけますか？",
+  "my name is osamu": "私の名前はOsamuです。",
+  "how many nights will you stay": "何泊されますか？",
+  "two nights": "2泊です。",
+
+  "could you help me": "手伝っていただけますか？",
+  "i am looking for": "〜を探しています",
+  "where can i find": "どこで見つけられますか？"
 }
