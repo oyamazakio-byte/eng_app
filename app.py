@@ -730,7 +730,42 @@ def detail_multi(id):
         conv=conv,
         messages=messages
     )
+# -----------------------
+# 個別再翻訳
+# -----------------------
+@app.route("/eng/retranslate/<int:id>", methods=["POST"])
+def retranslate(id):
 
+    conn = get_db()
+
+    m = conn.execute(
+        "SELECT * FROM messages WHERE id=?",
+        (id,)
+    ).fetchone()
+
+    if not m:
+        conn.close()
+        return {"status": "error"}
+
+    text = m["text"]
+
+    conn.execute("""
+    UPDATE messages
+    SET japanese=?,
+        kana=?,
+        kana_native=?
+    WHERE id=?
+    """, (
+        translate(text),
+        to_katakana(text),
+        to_katakana(text),
+        id
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return {"status": "ok"}
 # -----------------------
 # 全件再変換
 # -----------------------
@@ -768,7 +803,149 @@ def retranslate_all():
         url_for("index"),
         code=303
     )
+# -----------------------
+# 編集
+# -----------------------
+@app.route(
+    "/eng/edit/<int:id>",
+    methods=["GET", "POST"]
+)
+def edit_conversation(id):
 
+    conn = get_db()
+
+    if request.method == "POST":
+
+        title = request.form.get(
+            "title",
+            ""
+        ).strip()
+
+        lines_raw = request.form.get(
+            "lines",
+            ""
+        ).strip()
+
+        # 会話更新
+        conn.execute(
+            """
+            UPDATE conversations
+            SET title=?
+            WHERE id=?
+            """,
+            (title, id)
+        )
+
+        # 既存削除
+        conn.execute(
+            """
+            DELETE FROM messages
+            WHERE conversation_id=?
+            """,
+            (id,)
+        )
+
+        lines = lines_raw.split("\n")
+
+        speaker_toggle = "A"
+
+        for line in lines:
+
+            line = line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith("A:"):
+
+                speaker = "A"
+                text = line[2:].strip()
+
+            elif line.startswith("B:"):
+
+                speaker = "B"
+                text = line[2:].strip()
+
+            else:
+
+                speaker = speaker_toggle
+                text = line
+
+                speaker_toggle = (
+                    "B"
+                    if speaker_toggle == "A"
+                    else "A"
+                )
+
+            kana = to_katakana(text)
+
+            japanese = translate(text)
+
+            conn.execute("""
+            INSERT INTO messages
+            (
+                conversation_id,
+                speaker,
+                text,
+                japanese,
+                kana,
+                kana_native
+            )
+            VALUES (?,?,?,?,?,?)
+            """, (
+                id,
+                speaker,
+                text,
+                japanese,
+                kana,
+                kana
+            ))
+
+        conn.commit()
+        conn.close()
+
+        return redirect(
+            url_for(
+                "detail_multi",
+                id=id
+            )
+        )
+
+    # GET
+    conv = conn.execute(
+        """
+        SELECT *
+        FROM conversations
+        WHERE id=?
+        """,
+        (id,)
+    ).fetchone()
+
+    rows = conn.execute(
+        """
+        SELECT *
+        FROM messages
+        WHERE conversation_id=?
+        ORDER BY id
+        """,
+        (id,)
+    ).fetchall()
+
+    conn.close()
+
+    lines = []
+
+    for r in rows:
+
+        lines.append(
+            f"{r['speaker']}: {r['text']}"
+        )
+
+    return render_template(
+        "edit_multi.html",
+        conv=conv,
+        lines="\n".join(lines)
+    )
 # -----------------------
 # 削除
 # -----------------------

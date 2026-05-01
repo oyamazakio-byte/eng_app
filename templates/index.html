@@ -80,6 +80,29 @@ color:black;">
 
 <div style="display:flex; gap:10px; margin-top:20px;">
 
+<!-- 編集 -->
+<a href="/eng/edit/{{ row.id }}"
+style="
+flex:1;
+text-decoration:none;">
+
+<button type="button"
+style="
+font-size:32px;
+padding:25px;
+width:100%;
+background:#4CAF50;
+color:white;
+border:none;
+border-radius:12px;">
+
+✏ 編集
+
+</button>
+
+</a>
+
+<!-- 削除 -->
 <form action="/eng/delete/{{ row.id }}"
 method="post"
 style="flex:1;">
