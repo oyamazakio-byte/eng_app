@@ -24,9 +24,7 @@
   "yes a sandwich please": "イエスァ サンドイッチ プリーズ",
 
   "for here or to go": "フォーヒア オア トゥゴウ",
-  "to go": "トゥゴウ",
-
-  "that will be 450 yen": "ザット ウィル ビー フォーフィフティ イェン",
+   "that will be 450 yen": "ザット ウィル ビー フォーフィフティ イェン",
   "that will be 600 yen": "ザット ウィル ビー シックスハンドレッド イェン",
   "that will be 750 yen": "ザット ウィル ビー セブンフィフティ イェン",
   "that will be 999 yen": "ザット ウィル ビー ナインナインナイン イェン",
@@ -117,12 +115,10 @@
 "could you help me": "クッジュー ヘルプ ミー",
 "i am looking for": "アイム ルッキング フォー",
 "where can i find": "ウェア キャナイ ファインド",
-"want to": "ワナ",
-"going to": "ゴナ",
-"have to": "ハフタ",
 "can i get a coffee": "キャナイ ゲラ コーヒー",
 "is this seat taken": "イズ ディス シート テイケン",
-"excuse me is this seat taken": "イクスキューズ ミー イズ ディス シート テイケン"
-
-
+"excuse me is this seat taken": "イクスキューズ ミー イズ ディス シート テイケン",
+"for here": "フォーヒア",
+"to go": "トゥゴウ",
+"right this way": "ライト ディス ウェイ"
 }

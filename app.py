@@ -4,6 +4,7 @@ import re
 import json
 import os
 import glob
+from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
@@ -14,6 +15,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
 DB_NAME = "/home/bitnami/eng_app/conversation.db"
 DICT_DIR = "/home/bitnami/eng_app/dict"
 
+client = OpenAI()
 # -----------------------
 # JSON読み込み
 # -----------------------
@@ -103,6 +105,26 @@ def normalize(text):
 
     text = text.replace("’", "'")
     text = text.replace("‘", "'")
+    # contraction展開
+    text = text.replace("i'll", "i will")
+    text = text.replace("you're", "you are")
+    text = text.replace("we're", "we are")
+    text = text.replace("they're", "they are")
+
+    text = text.replace("don't", "do not")
+    text = text.replace("doesn't", "does not")
+    text = text.replace("can't", "cannot")
+    text = text.replace("won't", "will not")
+
+    text = text.replace("it's", "it is")
+    text = text.replace("that's", "that is")
+
+    text = text.replace("i'm", "i am")
+    text = text.replace("isn't", "is not")
+    text = text.replace("aren't", "are not")
+    text = text.replace("didn't", "did not")
+    text = text.replace("wouldn't", "would not")
+    text = text.replace("couldn't", "could not")
 
     # contraction対応
     text = text.replace("'", "")
@@ -194,11 +216,42 @@ def number_to_kana(num):
         9: "ナインティ"
     }
 
+    teens = {
+        10: "テン",
+        11: "イレブン",
+        12: "トゥエルブ",
+        13: "サーティーン",
+        14: "フォーティーン",
+        15: "フィフティーン",
+        16: "シックスティーン",
+        17: "セブンティーン",
+        18: "エイティーン",
+        19: "ナインティーン"
+    }
+
     # 数値化
     try:
         n = int(num)
+
     except:
         return num
+
+    # 10〜19
+    if 10 <= n <= 19:
+        return teens[n]
+
+    # 20〜99
+    if 20 <= n <= 99:
+
+        tens = n // 10
+        ones = n % 10
+
+        result = [TENS[tens]]
+
+        if ones > 0:
+            result.append(ONES[ones])
+
+        return " ".join(result)
 
     # 100〜999
     if 100 <= n <= 999:
@@ -209,38 +262,30 @@ def number_to_kana(num):
         result = []
 
         # hundreds
-        if hundreds > 0:
+        result.append(
+            f"{ONES[hundreds]} ハンドレッド"
+        )
+
+        # tens
+        if 10 <= tens_ones <= 19:
+
             result.append(
-                f"{ONES[hundreds]} ハンドレッド"
+                teens[tens_ones]
             )
 
-        # 10〜99
-        if tens_ones >= 20:
+        elif tens_ones >= 20:
 
             tens = tens_ones // 10
             ones = tens_ones % 10
 
-            result.append(TENS[tens])
+            result.append(
+                TENS[tens]
+            )
 
             if ones > 0:
-                result.append(ONES[ones])
-
-        elif tens_ones >= 10:
-
-            teens = {
-                10: "テン",
-                11: "イレブン",
-                12: "トゥエルブ",
-                13: "サーティーン",
-                14: "フォーティーン",
-                15: "フィフティーン",
-                16: "シックスティーン",
-                17: "セブンティーン",
-                18: "エイティーン",
-                19: "ナインティーン"
-            }
-
-            result.append(teens[tens_ones])
+                result.append(
+                    ONES[ones]
+                )
 
         elif tens_ones > 0:
 
@@ -248,13 +293,9 @@ def number_to_kana(num):
                 ONES[tens_ones]
             )
 
-        joined = " ".join(result)
+        return " ".join(result)
 
-        
-
-        return joined
-
-    # fallback
+    # 0〜9 fallback
     NUM = {
         "0": "ゼロ",
         "1": "ワン",
@@ -268,7 +309,10 @@ def number_to_kana(num):
         "9": "ナイン"
     }
 
-    return " ".join(NUM.get(c, c) for c in num)
+    return " ".join(
+        NUM.get(c, c)
+        for c in str(num)
+    )
 # -----------------------
 # 発音調整
 # -----------------------
@@ -301,6 +345,13 @@ def fallback_word_katakana(text):
                 WORD_KANA_DICT[nw]
             )
 
+        # 数字
+        elif re.fullmatch(r"\d+", w):
+
+            result.append(
+                number_to_kana(w)
+            )
+
         elif re.fullmatch(r"[a-zA-Z]+", w):
 
             result.append(w.upper())
@@ -312,6 +363,7 @@ def fallback_word_katakana(text):
     joined = " ".join(result)
 
     for k, v in NATIVE_DICT.items():
+
         joined = joined.replace(k, v)
 
     return joined
@@ -347,8 +399,7 @@ def partial_match(text, target_dict):
                 result
             )
 
-    return result 
-
+    return result
 # -----------------------
 # 翻訳用部分一致
 # 短文誤爆防止
@@ -381,7 +432,10 @@ def partial_match_translate(text, target_dict):
                 result
             )
 
-    return result   
+    if result != text:
+        return result
+
+    return None
 # -----------------------
 # カタカナ
 # -----------------------
@@ -445,6 +499,46 @@ def to_katakana_native(text):
     return to_katakana(text)
 
 # -----------------------
+# AI翻訳
+# -----------------------
+def ai_translate(text):
+
+    try:
+
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content":
+                    "Translate English to natural Japanese."
+                },
+                {
+                    "role": "user",
+                    "content": text
+                }
+            ],
+            temperature=0
+        )
+
+        result = (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+        print(f"[AI TRANS] {result}")
+
+        return result
+
+    except Exception as e:
+
+        print(f"[AI ERROR] {e}")
+
+        return text
+# -----------------------
 # 翻訳
 # -----------------------
 def translate(text):
@@ -479,7 +573,33 @@ def translate(text):
             "どちらにしますか？"
         )
 
-    print(f"[TRANS KEY] {key}")
+    # サイズ確認
+    if (
+        "sure" in key
+        and "what size would you like" in key
+    ):
+
+        print("[HIT] SIZE_PATTERN")
+
+        return (
+            "かしこまりました。"
+            "どのサイズになさいますか？"
+        )
+    # 少々お待ちください
+    if (
+        "sure" in key
+        and "please wait a moment" in key
+    ):
+
+        print("[HIT] WAIT_PATTERN")
+
+        return (
+            "かしこまりました。"
+            "少々お待ちください。"
+        )
+        
+
+    
 
     # 完全一致
     if key in TRANSLATE_DICT:
@@ -493,15 +613,60 @@ def translate(text):
         key,
         TRANSLATE_DICT
     )
-
-    if partial != key:
+    print(f"[PARTIAL RESULT] {partial}")
+    
+    if partial:
 
         print(f"[HIT] PARTIAL: {key}")
 
         return partial
-    print("[MISS]")
 
-    return text
+    print("[MISS AI]")
+
+    return ai_translate(text)
+# -----------------------
+# 辞書のみ翻訳
+# -----------------------
+def translate_dict_only(text):
+
+    key = normalize(text)
+
+    # 金額
+    m = re.search(
+        r"that will be (\d+) yen",
+        key
+    )
+
+    if m:
+        return f"お会計は{m.group(1)}円です"
+
+    # 特殊
+    if (
+        "sure" in key
+        and "hot or iced" in key
+    ):
+
+        return (
+            "かしこまりました。"
+            "ホットかアイス、"
+            "どちらにしますか？"
+        )
+
+    # 完全一致
+    if key in TRANSLATE_DICT:
+        return TRANSLATE_DICT[key]
+
+    # 部分一致
+    partial = partial_match_translate(
+        key,
+        TRANSLATE_DICT
+    )
+
+    if partial:
+        return partial
+
+    # AIなし
+    return ""
 # -----------------------
 # NG / 注意 判定
 # -----------------------
@@ -783,6 +948,37 @@ def retranslate_all():
 
         text = m["text"]
 
+        # 日本語
+        try:
+
+            new_japanese = translate_dict_only(text)
+
+            # 空欄なら既存維持
+            if new_japanese.strip():
+
+                japanese = new_japanese
+
+            else:
+
+                japanese = m["japanese"]
+
+        except Exception as e:
+
+            print(f"[RETRANS ERROR] {e}")
+
+            japanese = m["japanese"]
+
+        # カタカナ
+        try:
+
+            kana = to_katakana(text)
+
+        except Exception as e:
+
+            print(f"[KANA ERROR] {e}")
+
+            kana = text
+
         conn.execute("""
         UPDATE messages
         SET japanese=?,
@@ -790,19 +986,16 @@ def retranslate_all():
             kana_native=?
         WHERE id=?
         """, (
-            translate(text),
-            to_katakana(text),
-            to_katakana(text),
+            japanese,
+            kana,
+            kana,
             m["id"]
         ))
 
     conn.commit()
     conn.close()
 
-    return redirect(
-        url_for("index"),
-        code=303
-    )
+    return redirect("/eng/")
 # -----------------------
 # 編集
 # -----------------------
@@ -980,7 +1173,12 @@ def delete_conversation(id):
     conn.close()
 
     return redirect("/eng")
-
+    
+print(
+    ai_translate(
+        "Where are you going today?"
+    )
+)
 # -----------------------
 # 起動
 # -----------------------

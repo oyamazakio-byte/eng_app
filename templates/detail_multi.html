@@ -65,6 +65,7 @@ background:#fff3e0;
 
 <b style="font-size:30px;">{{ m.speaker }}:</b>
 
+<!-- 英文 -->
 <div style="font-size:60px;font-weight:bold;">
 {{ m.text }}
 </div>
@@ -73,12 +74,13 @@ background:#fff3e0;
 <div class="kana"
 data-normal="{{ m.kana }}"
 data-native="{{ m.kana_native }}"
-style="font-size:40px;color:#555;">
+style="font-size:40px;color:#555;margin-top:10px;">
 {{ m.kana }}
 </div>
 
 <!-- 日本語 -->
-<div class="jp" style="font-size:36px;color:#007bff;">
+<div class="jp"
+style="font-size:36px;color:#007bff;margin-top:10px;font-weight:bold;">
 {{ m.japanese }}
 </div>
 
@@ -137,6 +139,7 @@ style="font-size:22px;background:#2196f3;color:white;padding:10px 14px;border:no
 </div>
 
 </div>
+
 {% endfor %}
 
 </div>
@@ -277,13 +280,21 @@ function retranslate(id){
 // 音声
 function speak(text) {
     speechSynthesis.cancel();
+
     const uttr = new SpeechSynthesisUtterance(text);
+
     uttr.lang = 'en-US';
     uttr.rate = 0.9;
 
     if (voices.length > 0) {
-        const enVoice = voices.find(v => v.lang.includes('en'));
-        if (enVoice) uttr.voice = enVoice;
+
+        const enVoice = voices.find(
+            v => v.lang.includes('en')
+        );
+
+        if (enVoice){
+            uttr.voice = enVoice;
+        }
     }
 
     speechSynthesis.speak(uttr);
