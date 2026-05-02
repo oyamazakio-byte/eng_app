@@ -354,8 +354,9 @@ def fallback_word_katakana(text):
 
         elif re.fullmatch(r"[a-zA-Z]+", w):
 
-            result.append(w.upper())
-
+            result.append(
+                ai_katakana(w)
+            )
         else:
 
             result.append(w)
@@ -497,7 +498,109 @@ def to_katakana(text):
 def to_katakana_native(text):
 
     return to_katakana(text)
+# -----------------------
+# 単語辞書保存
+# -----------------------
+def save_word_kana(word, kana):
 
+    path = f"{DICT_DIR}/word_kana.json"
+
+    try:
+
+        with open(path, encoding="utf-8") as f:
+
+            data = json.load(f)
+
+    except:
+
+        data = {}
+
+    word = word.lower()
+
+    # 未登録のみ保存
+    if word not in data:
+
+        data[word] = kana
+
+        with open(
+            path,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                data,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        print(
+            f"[SAVE WORD] "
+            f"{word} -> {kana}"
+        )
+
+        # メモリ辞書にも反映
+        WORD_KANA_DICT[word] = kana
+# -----------------------
+# AIカタカナ
+# -----------------------
+def ai_katakana(word):
+
+    try:
+
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content":
+                    (
+                        "Convert English word "
+                        "to Japanese katakana only. "
+                        "No explanation."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": word
+                }
+            ],
+            temperature=0
+        )
+
+        result = (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+        # カギ括弧除去
+        result = result.replace("「", "")
+        result = result.replace("」", "")
+ 
+        print(
+            f"[AI KANA] "
+            f"{word} -> {result}"
+        )
+
+        # 自動辞書登録
+        save_word_kana(
+            word,
+            result
+        )
+
+        return result
+
+    except Exception as e:
+
+        print(
+            f"[AI KANA ERROR] {e}"
+        )
+
+        return word.upper()
 # -----------------------
 # AI翻訳
 # -----------------------
