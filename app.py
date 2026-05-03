@@ -41,6 +41,26 @@ TRANSLATE_DICT = {}
 WORD_KANA_DICT = {}
 NATIVE_DICT = {}
 
+# -----------------------
+# 翻訳キャッシュ
+# -----------------------
+TRANSLATION_CACHE_PATH = (
+    f"{DICT_DIR}/translation_cache.json"
+)
+
+try:
+
+    with open(
+        TRANSLATION_CACHE_PATH,
+        encoding="utf-8"
+    ) as f:
+
+        TRANSLATION_CACHE = json.load(f)
+
+except:
+
+    TRANSLATION_CACHE = {}
+
 for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
 
     name = os.path.basename(path)
@@ -58,7 +78,10 @@ for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
         })
 
     # 翻訳辞書
-    elif "translate" in name:
+    elif (
+        "translate" in name
+        and "translation_cache" not in name
+    ):
 
         TRANSLATE_DICT.update({
             k.lower(): v
@@ -81,14 +104,30 @@ for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
             for k, v in data.items()
         })
 
+    # 翻訳キャッシュは無視
+    elif "translation_cache" in name:
+
+        pass
+
     # それ以外は全部発音辞書
     else:
 
         PHRASE_DICT.update({
             k.lower(): v
             for k, v in data.items()
-        })
+       })
+# -----------------------
+# 汚染データ除去
+# -----------------------
+REMOVE_FROM_PHRASE = set(TRANSLATION_CACHE.keys())
 
+for k in REMOVE_FROM_PHRASE:
+
+    if k in PHRASE_DICT:
+
+        print(f"[REMOVE PHRASE POLLUTION] {k}")
+
+        del PHRASE_DICT[k]
 print(f"[PHRASE] {len(PHRASE_DICT)}")
 print(f"[TRANS] {len(TRANSLATE_DICT)}")
 print(f"[WORD] {len(WORD_KANA_DICT)}")
@@ -138,7 +177,7 @@ def normalize(text):
     
     text = text.strip()
 
-    print(f"[NORMALIZE] {text}")
+    #print(f"[NORMALIZE] {text}")
 
     return text
 
@@ -319,13 +358,46 @@ def number_to_kana(num):
 def tune_katakana(text):
 
     text = text.replace("ドゥ ユー", "ドゥヤ")
+    text = text.replace("アイ ウィル", "アイル")
     #text = text.replace("ゲット ア", "ゲッラ")
     text = text.replace("ハヴ ア", "ハヴァ")
     text = text.replace("ウッド ユー", "ウッジュー")
     text = text.replace("ハブ", "ハヴ")
+    text = text.replace("アイ アム", "アイム")
+    text = text.replace("ヒア イズ", "ヒアズ")
+    text = text.replace("ゼア イズ", "ゼアズ")
 
     return re.sub(r"\s+", " ", text).strip()
+# -----------------------
+# 辞書ヒット率
+# -----------------------
+def dict_hit_rate(text):
 
+    words = re.findall(
+        r"[a-zA-Z]+",
+        normalize(text)
+    )
+
+    if not words:
+
+        return 0
+
+    hit = 0
+
+    for w in words:
+
+        if w.lower() in WORD_KANA_DICT:
+
+            hit += 1
+
+    rate = hit / len(words)
+
+    #print(
+    #    f"[DICT RATE] "
+    #    f"{hit}/{len(words)} = {rate}"
+    #)
+
+    return rate
 # -----------------------
 # 単語fallback
 # -----------------------
@@ -353,10 +425,8 @@ def fallback_word_katakana(text):
             )
 
         elif re.fullmatch(r"[a-zA-Z]+", w):
-
-            result.append(
-                ai_katakana(w)
-            )
+            print(f"[FALLBACK WORD] {w}")
+            result.append(w.upper())
         else:
 
             result.append(w)
@@ -392,7 +462,7 @@ def partial_match(text, target_dict):
 
         if re.search(pattern, result):
 
-            print(f"[PARTIAL HIT] {k}")
+            #print(f"[PARTIAL HIT] {k}")
 
             result = re.sub(
                 pattern,
@@ -425,7 +495,7 @@ def partial_match_translate(text, target_dict):
 
         if re.search(pattern, result):
 
-            print(f"[TRANS PARTIAL HIT] {k}")
+            #print(f"[TRANS PARTIAL HIT] {k}")
 
             result = re.sub(
                 pattern,
@@ -444,7 +514,7 @@ def to_katakana(text):
 
     norm = normalize(text)
 
-    print(f"[NORM] {norm}")
+    #print(f"[NORM] {norm}")
     
     # 金額
     m = re.search(
@@ -463,7 +533,7 @@ def to_katakana(text):
         )
 
     # 完全一致
-    print(f"[CHECK PHRASE] {norm}")
+    #print(f"[CHECK PHRASE] {norm}")
 
     if norm in PHRASE_DICT:
 
@@ -490,9 +560,22 @@ def to_katakana(text):
     # fallback
     if re.search(r"[a-z]", norm):
 
-        print(f"[KANA] FALLBACK: {norm}")
+        rate = dict_hit_rate(norm)
 
-        return fallback_word_katakana(norm)
+        # 80%以上辞書ならAI不要
+        if rate >= 0.8:
+
+            #print(
+            #    f"[KANA] DICT MODE: {norm}"
+            #)
+
+            return fallback_word_katakana(norm)
+
+        print(
+            f"[KANA] AI SENTENCE: {norm}"
+        )
+
+        return ai_sentence_katakana(text)
 
     return text
 def to_katakana_native(text):
@@ -542,6 +625,39 @@ def save_word_kana(word, kana):
 
         # メモリ辞書にも反映
         WORD_KANA_DICT[word] = kana
+
+# -----------------------
+# 翻訳キャッシュ保存
+# -----------------------
+def save_translation_cache(
+    eng,
+    jp
+):
+
+    eng = normalize(eng)
+
+    # 未登録のみ
+    if eng not in TRANSLATION_CACHE:
+
+        TRANSLATION_CACHE[eng] = jp
+
+        with open(
+            TRANSLATION_CACHE_PATH,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                TRANSLATION_CACHE,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        print(
+            f"[SAVE TRANS] "
+            f"{eng}"
+        )
 # -----------------------
 # AIカタカナ
 # -----------------------
@@ -580,6 +696,8 @@ def ai_katakana(word):
         # カギ括弧除去
         result = result.replace("「", "")
         result = result.replace("」", "")
+        result = result.replace("。", "")
+        result = result.replace("、", " ")
  
         print(
             f"[AI KANA] "
@@ -602,9 +720,103 @@ def ai_katakana(word):
 
         return word.upper()
 # -----------------------
+# AI文カタカナ
+# -----------------------
+def ai_sentence_katakana(text):
+
+    try:
+
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content":
+                    (
+                        "Convert English sentence "
+                        "to natural Japanese katakana only. "
+                        "No explanation."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": text
+                }
+            ],
+            temperature=0
+        )
+
+        result = (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+        # カギ括弧除去
+        result = result.replace("「", "")
+        result = result.replace("」", "")
+        # 句読点除去
+        result = result.replace("。", "")
+        result = result.replace("、", " ")
+
+        print(
+            f"[AI SENTENCE KANA] "
+            f"{text} -> {result}"
+        )
+        """
+        # -------------------
+        # 単語自動学習
+        # -------------------
+        eng_words = re.findall(
+            r"[a-zA-Z]+",
+            normalize(text)
+        )
+
+        kana_words = result.split()
+
+        for i in range(
+            min(len(eng_words), len(kana_words))
+        ):
+
+            ew = eng_words[i].lower()
+            kw = kana_words[i]
+
+            # 未登録のみ
+            if ew not in WORD_KANA_DICT:
+
+                save_word_kana(
+                    ew,
+                    kw
+                )
+        """
+
+        return result
+
+    except Exception as e:
+
+        print(
+            f"[AI SENTENCE ERROR] {e}"
+        )
+
+        return text
+    
+# -----------------------
 # AI翻訳
 # -----------------------
 def ai_translate(text):
+
+    key = normalize(text)
+
+    # キャッシュ
+    if key in TRANSLATION_CACHE:
+
+        print(
+            f"[TRANS CACHE] {key}"
+        )
+
+        return TRANSLATION_CACHE[key]
 
     try:
 
@@ -634,8 +846,11 @@ def ai_translate(text):
 
         print(f"[AI TRANS] {result}")
 
+        save_translation_cache(
+            text,
+            result
+        )
         return result
-
     except Exception as e:
 
         print(f"[AI ERROR] {e}")
@@ -648,7 +863,7 @@ def translate(text):
 
     key = normalize(text)
     
-    print(f"[KEY] {key}")
+    #print(f"[KEY] {key}")
 
     # 金額
     m = re.search(
@@ -688,6 +903,16 @@ def translate(text):
             "かしこまりました。"
             "どのサイズになさいますか？"
         )
+    # ready soon
+    if (
+        "your order will be ready soon"
+        in key
+    ):
+
+        return (
+            "ご注文はすぐに"
+            "ご用意できます。"
+        )
     # 少々お待ちください
     if (
         "sure" in key
@@ -707,7 +932,7 @@ def translate(text):
     # 完全一致
     if key in TRANSLATE_DICT:
 
-        print(f"[HIT] EXACT: {key}")
+        #print(f"[HIT] EXACT: {key}")
 
         return TRANSLATE_DICT[key]
 
@@ -716,20 +941,20 @@ def translate(text):
         key,
         TRANSLATE_DICT
     )
-    print(f"[PARTIAL RESULT] {partial}")
+    #print(f"[PARTIAL RESULT] {partial}")
     
     if partial:
 
-        print(f"[HIT] PARTIAL: {key}")
+        #print(f"[HIT] PARTIAL: {key}")
 
         return partial
 
-    print("[MISS AI]")
+    #print("[MISS AI]")
 
     return ai_translate(text)
 # -----------------------
 # 辞書のみ翻訳
-# -----------------------
+# ---------------
 def translate_dict_only(text):
 
     key = normalize(text)
@@ -739,7 +964,6 @@ def translate_dict_only(text):
         r"that will be (\d+) yen",
         key
     )
-
     if m:
         return f"お会計は{m.group(1)}円です"
 
@@ -1277,11 +1501,7 @@ def delete_conversation(id):
 
     return redirect("/eng")
     
-print(
-    ai_translate(
-        "Where are you going today?"
-    )
-)
+
 # -----------------------
 # 起動
 # -----------------------
