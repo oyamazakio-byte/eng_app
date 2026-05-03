@@ -357,15 +357,9 @@ def number_to_kana(num):
 # -----------------------
 def tune_katakana(text):
 
-    text = text.replace("ドゥ ユー", "ドゥヤ")
-    text = text.replace("アイ ウィル", "アイル")
-    #text = text.replace("ゲット ア", "ゲッラ")
-    text = text.replace("ハヴ ア", "ハヴァ")
-    text = text.replace("ウッド ユー", "ウッジュー")
-    text = text.replace("ハブ", "ハヴ")
-    text = text.replace("アイ アム", "アイム")
-    text = text.replace("ヒア イズ", "ヒアズ")
-    text = text.replace("ゼア イズ", "ゼアズ")
+    for k, v in NATIVE_DICT.items():
+
+        text = text.replace(k, v)
 
     return re.sub(r"\s+", " ", text).strip()
 # -----------------------
@@ -565,22 +559,24 @@ def to_katakana(text):
         # 80%以上辞書ならAI不要
         if rate >= 0.8:
 
-            #print(
-            #    f"[KANA] DICT MODE: {norm}"
-            #)
-
-            return fallback_word_katakana(norm)
+            return tune_katakana(
+                fallback_word_katakana(norm)
+            )
 
         print(
-            f"[KANA] AI SENTENCE: {norm}"
+            f"[KANA] FALLBACK ONLY: {norm}"
         )
 
-        return ai_sentence_katakana(text)
+        return tune_katakana(
+            fallback_word_katakana(norm)
+        )
 
     return text
+
 def to_katakana_native(text):
 
     return to_katakana(text)
+
 # -----------------------
 # 単語辞書保存
 # -----------------------
