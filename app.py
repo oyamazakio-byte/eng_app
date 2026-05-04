@@ -61,6 +61,26 @@ except:
 
     TRANSLATION_CACHE = {}
 
+# -----------------------
+# カタカナキャッシュ
+# -----------------------
+KATAKANA_CACHE_PATH = (
+    f"{DICT_DIR}/katakana_cache.json"
+)
+
+try:
+
+    with open(
+        KATAKANA_CACHE_PATH,
+        encoding="utf-8"
+    ) as f:
+
+        KATAKANA_CACHE = json.load(f)
+
+except:
+
+    KATAKANA_CACHE = {}
+
 for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
 
     name = os.path.basename(path)
@@ -104,8 +124,11 @@ for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
             for k, v in data.items()
         })
 
-    # 翻訳キャッシュは無視
-    elif "translation_cache" in name:
+    # キャッシュは無視
+    elif (
+        "translation_cache" in name
+        or "katakana_cache" in name
+    ):
 
         pass
 
@@ -116,6 +139,7 @@ for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
             k.lower(): v
             for k, v in data.items()
        })
+
 # -----------------------
 # 汚染データ除去
 # -----------------------
@@ -507,7 +531,14 @@ def partial_match_translate(text, target_dict):
 def to_katakana(text):
 
     norm = normalize(text)
+    # キャッシュ
+    if norm in KATAKANA_CACHE:
 
+        print(
+            f"[KANA CACHE] {norm}"
+        )
+
+        return KATAKANA_CACHE[norm]
     #print(f"[NORM] {norm}")
     
     # 金額
@@ -536,7 +567,7 @@ def to_katakana(text):
         return tune_katakana(
             PHRASE_DICT[norm]
         )
-
+    """
     # 長文優先部分一致
     converted = partial_match(
         norm,
@@ -550,26 +581,26 @@ def to_katakana(text):
         converted = fallback_word_katakana(converted)
 
         return tune_katakana(converted)
-
+    """
     # fallback
     if re.search(r"[a-z]", norm):
 
         rate = dict_hit_rate(norm)
 
-        # 80%以上辞書ならAI不要
-        if rate >= 0.8:
+       
+       
+        # 全単語辞書一致ならAI不要
+        if rate == 1.0:
 
             return tune_katakana(
                 fallback_word_katakana(norm)
             )
 
         print(
-            f"[KANA] FALLBACK ONLY: {norm}"
+            f"[KANA] AI SENTENCE: {norm}"
         )
 
-        return tune_katakana(
-            fallback_word_katakana(norm)
-        )
+        return ai_sentence_katakana(text)
 
     return text
 
@@ -655,6 +686,38 @@ def save_translation_cache(
             f"{eng}"
         )
 # -----------------------
+# カタカナキャッシュ保存
+# -----------------------
+def save_katakana_cache(
+    eng,
+    kana
+):
+
+    eng = normalize(eng)
+
+    # 未登録のみ
+    if eng not in KATAKANA_CACHE:
+
+        KATAKANA_CACHE[eng] = kana
+
+        with open(
+            KATAKANA_CACHE_PATH,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                KATAKANA_CACHE,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        print(
+            f"[SAVE KANA] "
+            f"{eng}"
+        )
+# -----------------------
 # AIカタカナ
 # -----------------------
 def ai_katakana(word):
@@ -730,8 +793,9 @@ def ai_sentence_katakana(text):
                     "content":
                     (
                         "Convert English sentence "
-                        "to natural Japanese katakana only. "
-                        "No explanation."
+                        "to Japanese katakana pronunciation only. "
+                        "Do NOT translate meaning. "
+                        "Output katakana only."
                     )
                 },
                 {
@@ -761,34 +825,19 @@ def ai_sentence_katakana(text):
             f"[AI SENTENCE KANA] "
             f"{text} -> {result}"
         )
-        """
-        # -------------------
-        # 単語自動学習
-        # -------------------
-        eng_words = re.findall(
-            r"[a-zA-Z]+",
-            normalize(text)
+
+        result = tune_katakana(result)
+
+        save_katakana_cache(
+            text,
+            result
         )
 
-        kana_words = result.split()
-
-        for i in range(
-            min(len(eng_words), len(kana_words))
-        ):
-
-            ew = eng_words[i].lower()
-            kw = kana_words[i]
-
-            # 未登録のみ
-            if ew not in WORD_KANA_DICT:
-
-                save_word_kana(
-                    ew,
-                    kw
-                )
-        """
-
         return result
+    
+        
+
+
 
     except Exception as e:
 
@@ -1039,7 +1088,13 @@ def index():
 
     return render_template(
         "index.html",
-        data=data
+        data=data,
+        phrase_count=len(PHRASE_DICT),
+        trans_count=len(TRANSLATE_DICT),
+        word_count=len(WORD_KANA_DICT),
+        native_count=len(NATIVE_DICT),
+        kana_cache_count=len(KATAKANA_CACHE),
+        trans_cache_count=len(TRANSLATION_CACHE)
     )
 
 # -----------------------
@@ -1264,9 +1319,11 @@ def retranslate_all():
     conn = get_db()
 
     messages = conn.execute(
-        "SELECT * FROM messages"
+        """
+        SELECT * FROM messages
+        LIMIT 200
+       """
     ).fetchall()
-
     for m in messages:
 
         text = m["text"]
