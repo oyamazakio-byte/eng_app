@@ -225,5 +225,21 @@
 "faster": "ファスター",
 "of": "オブ",
 "and": "アンド",
-"thats": "ザッツ"
+"thats": "ザッツ",
+"framework": "フレームワーク",
+"telemetry": "テレメトリー",
+"pipeline": "パイプライン",
+"pipelines": "パイプラインズ",
+"server": "サーバー",
+"database": "データベース",
+"network": "ネットワーク",
+"container": "コンテナ",
+"deployment": "デプロイメント",
+"kubernetes": "クバネティス",
+"github": "ギットハブ",
+"docker": "ドッカー",
+"linux": "リナックス",
+"python": "パイソン",
+"flask": "フラスク",
+"apache": "アパッチ"
 }

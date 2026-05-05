@@ -142,5 +142,12 @@
   "probably ls and nano": "おそらくlsとnanoです。",
   "same here": "私も同じです。",
   "vscode makes development easier": "VSCodeは開発をより簡単にします。",
-  "i agree": "同感です。"
+  "i agree": "同感です。",
+  "my smartphone battery dies quickly": "私のスマートフォンのバッテリーはすぐに切れてしまいます。",
+  "maybe you should replace it": "交換したほうがいいかもしれません。",
+  "the quantum computer uses advanced algorithms": "量子コンピュータは高度なアルゴリズムを使用します。",
+  "the deployment pipeline uses kubernetes containers": "デプロイメントパイプラインはKubernetesコンテナを使用しています。",
+  "the kubernetes deployment uses quantum containers": "Kubernetesのデプロイメントは、Quantumコンテナを使用しています。",
+  "the kubernetes deployment system uses containers": "Kubernetesのデプロイメントシステムはコンテナを使用します。",
+  "the hyperscale orchestration framework optimizes telemetry pipelines": "ハイパースケールオーケストレーションフレームワークは、テレメトリパイプラインを最適化します。"
 }

@@ -29,5 +29,13 @@
   "same here": "セイム ヒア",
   "vscode makes development easier": "ブイエスコード メイクス ディベロップメント イージャー",
   "i agree": "アイ アグリー",
-  "my name is osamu yamazaki": "マイ ネーム イズ オサム ヤマザキ"
+  "my name is osamu yamazaki": "マイ ネーム イズ オサム ヤマザキ",
+  "i hope you enjoy your stay": "アイ ホープ ユー エンジョイ ユア ステイ",
+  "my smartphone battery dies quickly": "マイ スマートフォン バッテリー ダイズ クイックリー",
+  "maybe you should replace it": "メイビー ユー シュッド リプレイス イット",
+  "the quantum computer uses advanced algorithms": "ザ クァンタム コンピューター ユーズ アドバンスド アルゴリズムズ",
+  "the deployment pipeline uses kubernetes containers": "ザ ディプロイメント パイプライン ユーズ クバネティス コンテナーズ",
+  "the kubernetes deployment uses quantum containers": "ザ クバネティス デプロイメント ユーズズ クァンタム コンテイナーズ",
+  "the kubernetes deployment system uses containers": "ザ クバネティス デプロイメント システム ユーズ コンテイナーズ",
+  "the hyperscale orchestration framework optimizes telemetry pipelines": "ザ ハイパースケール オーケストレーション フレームワーク オプティマイズズ テレメトリー パイプラインズ"
 }

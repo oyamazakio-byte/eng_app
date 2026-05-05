@@ -15,6 +15,10 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
 DB_NAME = "/home/bitnami/eng_app/conversation.db"
 DICT_DIR = "/home/bitnami/eng_app/dict"
 
+STATS_PATH = (
+    f"{DICT_DIR}/stats.json"
+)
+
 client = OpenAI()
 # -----------------------
 # JSON読み込み
@@ -40,6 +44,15 @@ PHRASE_DICT = {}
 TRANSLATE_DICT = {}
 WORD_KANA_DICT = {}
 NATIVE_DICT = {}
+AI_KANA_COUNT = 0
+AI_TRANS_COUNT = 0
+
+KANA_CACHE_HIT = 0
+KANA_TOTAL = 0
+UNKNOWN_WORDS = {}
+
+TRANS_CACHE_HIT = 0
+TRANS_TOTAL = 0
 
 # -----------------------
 # 翻訳キャッシュ
@@ -530,15 +543,24 @@ def partial_match_translate(text, target_dict):
 # -----------------------
 def to_katakana(text):
 
+    global KANA_CACHE_HIT
+    global KANA_TOTAL
+
+    KANA_TOTAL += 1
+
     norm = normalize(text)
+
     # キャッシュ
     if norm in KATAKANA_CACHE:
+
+        KANA_CACHE_HIT += 1
 
         print(
             f"[KANA CACHE] {norm}"
         )
 
         return KATAKANA_CACHE[norm]
+
     #print(f"[NORM] {norm}")
     
     # 金額
@@ -567,6 +589,7 @@ def to_katakana(text):
         return tune_katakana(
             PHRASE_DICT[norm]
         )
+
     """
     # 長文優先部分一致
     converted = partial_match(
@@ -582,13 +605,12 @@ def to_katakana(text):
 
         return tune_katakana(converted)
     """
+
     # fallback
     if re.search(r"[a-z]", norm):
 
         rate = dict_hit_rate(norm)
 
-       
-       
         # 全単語辞書一致ならAI不要
         if rate == 1.0:
 
@@ -603,7 +625,6 @@ def to_katakana(text):
         return ai_sentence_katakana(text)
 
     return text
-
 def to_katakana_native(text):
 
     return to_katakana(text)
@@ -782,6 +803,10 @@ def ai_katakana(word):
 # AI文カタカナ
 # -----------------------
 def ai_sentence_katakana(text):
+    global AI_KANA_COUNT
+    global UNKNOWN_WORDS
+    
+    AI_KANA_COUNT += 1
 
     try:
 
@@ -825,9 +850,22 @@ def ai_sentence_katakana(text):
             f"[AI SENTENCE KANA] "
             f"{text} -> {result}"
         )
+        words = re.findall(
+            r"[a-zA-Z]+",
+            normalize(text)
+        )
 
+        for w in words:
+            w = w.lower()
+            if w not in WORD_KANA_DICT:
+
+                UNKNOWN_WORDS[w] = (
+                    UNKNOWN_WORDS.get(w, 0) + 1
+                )
+
+                print(f"[UNKNOWN WORD] {w}")
         result = tune_katakana(result)
-
+        
         save_katakana_cache(
             text,
             result
@@ -851,7 +889,9 @@ def ai_sentence_katakana(text):
 # AI翻訳
 # -----------------------
 def ai_translate(text):
-
+    global AI_TRANS_COUNT
+    AI_TRANS_COUNT += 1
+    
     key = normalize(text)
 
     # キャッシュ
@@ -905,6 +945,11 @@ def ai_translate(text):
 # 翻訳
 # -----------------------
 def translate(text):
+
+    global TRANS_CACHE_HIT
+    global TRANS_TOTAL
+
+    TRANS_TOTAL += 1
 
     key = normalize(text)
     
@@ -973,7 +1018,16 @@ def translate(text):
         
 
     
+    # キャッシュ
+    if key in TRANSLATION_CACHE:
 
+        TRANS_CACHE_HIT += 1
+
+        print(
+            f"[TRANS CACHE HIT] {key}"
+        )
+
+        return TRANSLATION_CACHE[key]
     # 完全一致
     if key in TRANSLATE_DICT:
 
@@ -1072,6 +1126,34 @@ def detect_ng(text, kana, japanese):
     return issues, warnings
 
 # -----------------------
+# 統計保存
+# -----------------------
+def save_stats():
+
+    data = {
+        "phrase": len(PHRASE_DICT),
+        "trans": len(TRANSLATE_DICT),
+        "word": len(WORD_KANA_DICT),
+        "native": len(NATIVE_DICT),
+        "kana_cache": len(KATAKANA_CACHE),
+        "trans_cache": len(TRANSLATION_CACHE)
+    }
+
+    with open(
+        STATS_PATH,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            data,
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
+
+    print("[SAVE STATS]")
+# -----------------------
 # ルート
 # -----------------------
 @app.route("/")
@@ -1085,7 +1167,42 @@ def index():
     ).fetchall()
 
     conn.close()
+    
+    # -----------------------
+    # 前回統計
+    # -----------------------
+    old_stats = load_json(STATS_PATH)
 
+    phrase_diff = (
+        len(PHRASE_DICT)
+        - old_stats.get("phrase", 0)
+    )
+
+    trans_diff = (
+        len(TRANSLATE_DICT)
+        - old_stats.get("trans", 0)
+    )
+
+    word_diff = (
+        len(WORD_KANA_DICT)
+        - old_stats.get("word", 0)
+    )
+
+    native_diff = (
+        len(NATIVE_DICT)
+        - old_stats.get("native", 0)
+    )
+
+    kana_cache_diff = (
+        len(KATAKANA_CACHE)
+        - old_stats.get("kana_cache", 0)
+    )
+
+    trans_cache_diff = (
+        len(TRANSLATION_CACHE)
+        - old_stats.get("trans_cache", 0)
+    )
+    
     return render_template(
         "index.html",
         data=data,
@@ -1094,9 +1211,176 @@ def index():
         word_count=len(WORD_KANA_DICT),
         native_count=len(NATIVE_DICT),
         kana_cache_count=len(KATAKANA_CACHE),
-        trans_cache_count=len(TRANSLATION_CACHE)
+        trans_cache_count=len(TRANSLATION_CACHE),
+
+        phrase_diff=phrase_diff,
+        trans_diff=trans_diff,
+        word_diff=word_diff,
+        native_diff=native_diff,
+        kana_cache_diff=kana_cache_diff,
+        trans_cache_diff=trans_cache_diff,
+
+        ai_kana_count=AI_KANA_COUNT,
+        ai_trans_count=AI_TRANS_COUNT,
+ 
+        kana_hit_rate=(
+            int(KANA_CACHE_HIT / KANA_TOTAL * 100)
+            if KANA_TOTAL else 0
+  ),
+
+  trans_hit_rate=(
+      int(TRANS_CACHE_HIT / TRANS_TOTAL * 100)
+      if TRANS_TOTAL else 0
+  )
+        
+)
+# -----------------------
+# 管理画面
+# -----------------------
+@app.route("/eng/admin")
+def admin():
+    q = request.args.get(
+        "q",
+        ""
+    ).strip().lower()
+    old_stats = load_json(STATS_PATH)
+    phrase_hits = {}
+    trans_hits = {}
+    word_hits = {}
+    native_hits = {}
+    kana_cache_hits = {}
+    trans_cache_hits = {}
+
+    phrase_diff = (
+        len(PHRASE_DICT)
+        - old_stats.get("phrase", 0)
     )
 
+    trans_diff = (
+        len(TRANSLATE_DICT)
+        - old_stats.get("trans", 0)
+    )
+
+    word_diff = (
+        len(WORD_KANA_DICT)
+        - old_stats.get("word", 0)
+    )
+
+    native_diff = (
+        len(NATIVE_DICT)
+        - old_stats.get("native", 0)
+    )
+
+    kana_cache_diff = (
+        len(KATAKANA_CACHE)
+        - old_stats.get("kana_cache", 0)
+    )
+
+    trans_cache_diff = (
+        len(TRANSLATION_CACHE)
+        - old_stats.get("trans_cache", 0)
+    )
+
+    kana_hit_rate = (
+        int(KANA_CACHE_HIT / KANA_TOTAL * 100)
+        if KANA_TOTAL else 0
+    )
+
+    trans_hit_rate = (
+        int(TRANS_CACHE_HIT / TRANS_TOTAL * 100)
+        if TRANS_TOTAL else 0
+    )
+    # -----------------------
+    # API料金推定
+    # -----------------------
+
+    # 1回あたり概算
+    kana_cost = 0.00015
+    trans_cost = 0.0003
+
+    estimated_cost = (
+        AI_KANA_COUNT * kana_cost
+        + AI_TRANS_COUNT * trans_cost
+    )
+
+    estimated_yen = estimated_cost * 150
+
+    if q:
+
+        phrase_hits = {
+            k: v
+            for k, v in PHRASE_DICT.items()
+            if q in k
+        }
+
+        trans_hits = {
+            k: v
+            for k, v in TRANSLATE_DICT.items()
+            if q in k
+        }
+
+        word_hits = {
+            k: v
+            for k, v in WORD_KANA_DICT.items()
+            if q in k
+        }
+
+        native_hits = {
+            k: v
+            for k, v in NATIVE_DICT.items()
+            if q in k
+        }
+
+        kana_cache_hits = {
+            k: v
+            for k, v in KATAKANA_CACHE.items()
+            if q in k
+        }
+
+        trans_cache_hits = {
+            k: v
+            for k, v in TRANSLATION_CACHE.items()
+            if q in k
+        }
+    return render_template(
+        "admin.html",
+
+        phrase_count=len(PHRASE_DICT),
+        trans_count=len(TRANSLATE_DICT),
+        word_count=len(WORD_KANA_DICT),
+        native_count=len(NATIVE_DICT),
+        kana_cache_count=len(KATAKANA_CACHE),
+        trans_cache_count=len(TRANSLATION_CACHE),
+
+        phrase_diff=phrase_diff,
+        trans_diff=trans_diff,
+        word_diff=word_diff,
+        native_diff=native_diff,
+        kana_cache_diff=kana_cache_diff,
+        trans_cache_diff=trans_cache_diff,
+
+        ai_kana_count=AI_KANA_COUNT,
+        ai_trans_count=AI_TRANS_COUNT,
+
+        kana_hit_rate=kana_hit_rate,
+        trans_hit_rate=trans_hit_rate,
+
+        q=q,
+
+        phrase_hits=phrase_hits,
+        trans_hits=trans_hits,
+        word_hits=word_hits,
+        native_hits=native_hits,
+        kana_cache_hits=kana_cache_hits,
+        trans_cache_hits=trans_cache_hits,
+        estimated_cost=estimated_cost,
+        estimated_yen=estimated_yen,
+        unknown_words=sorted(
+            UNKNOWN_WORDS.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:30]
+        )
 # -----------------------
 # 登録
 # -----------------------
@@ -1554,7 +1838,18 @@ def delete_conversation(id):
 
     return redirect("/eng")
     
+# -----------------------
+# 統計保存
+# -----------------------
+@app.route(
+    "/eng/save_stats",
+    methods=["GET", "POST"]
+)
+def save_stats_route():
 
+    save_stats()
+
+    return redirect("/eng/")
 # -----------------------
 # 起動
 # -----------------------
