@@ -17,6 +17,40 @@ text-decoration:none;">
 
 </a>
 
+<!-- ⭐ お気に入り一覧 -->
+<a href="/eng/favorites"
+style="
+display:block;
+font-size:32px;
+padding:18px;
+background:#FFD54F;
+color:black;
+text-align:center;
+border-radius:15px;
+margin-bottom:25px;
+text-decoration:none;">
+
+⭐ お気に入り一覧
+
+</a>
+
+<!-- ⭐ お気に入り例文 -->
+<a href="/eng/favorite_messages"
+style="
+display:block;
+font-size:32px;
+padding:18px;
+background:#FFF176;
+color:black;
+text-align:center;
+border-radius:15px;
+margin-bottom:25px;
+text-decoration:none;">
+
+⭐ お気に入り例文
+
+</a>
+
 <!-- 🔄 一括再翻訳 -->
 <form action="/eng/retranslate_all" method="post">
 
@@ -106,6 +140,31 @@ color:black;">
 </a>
 
 <div style="display:flex; gap:10px; margin-top:20px;">
+
+<!-- ⭐ お気に入り -->
+<form action="/eng/favorite/{{ row.id }}"
+method="post"
+style="flex:1;">
+
+<button type="submit"
+style="
+font-size:32px;
+padding:25px;
+width:100%;
+background:{% if row.favorite == 1 %}#FFD54F{% else %}#BDBDBD{% endif %};
+color:black;
+border:none;
+border-radius:12px;">
+
+{% if row.favorite == 1 %}
+⭐ お気に入り
+{% else %}
+☆ お気に入り
+{% endif %}
+
+</button>
+
+</form>
 
 <!-- 編集 -->
 <a href="/eng/edit/{{ row.id }}"

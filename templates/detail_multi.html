@@ -123,18 +123,58 @@ font-weight:bold;">
 </div>
 {% endif %}
 
-<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
 
 <button onclick="playOne(this)"
 data-text="{{ m.text }}"
-style="font-size:22px;background:#9c27b0;color:white;padding:10px 14px;border:none;border-radius:8px;">
+style="
+font-size:22px;
+background:#9c27b0;
+color:white;
+padding:10px 14px;
+height:46px;
+border:none;
+border-radius:8px;">
 ▶ 再生
 </button>
 
 <button onclick="retranslate({{ m.id }})"
-style="font-size:22px;background:#2196f3;color:white;padding:10px 14px;border:none;border-radius:8px;">
+style="
+font-size:22px;
+background:#2196f3;
+color:white;
+padding:10px 14px;
+height:46px;
+border:none;
+border-radius:8px;">
 🔄 再翻訳
 </button>
+
+<!-- ⭐ 例文お気に入り -->
+<form action="/eng/message_favorite/{{ m.id }}"
+method="post"
+style="display:inline;">
+
+<button type="submit"
+style="
+font-size:22px;
+padding:10px 14px;
+height:46px;
+white-space:nowrap;
+background:{% if m.favorite == 1 %}#FFD54F{% else %}#BDBDBD{% endif %};
+color:black;
+border:none;
+border-radius:8px;">
+
+{% if m.favorite == 1 %}
+⭐ お気に入り済み
+{% else %}
+☆ お気に入り
+{% endif %}
+
+</button>
+
+</form>
 
 </div>
 
@@ -173,6 +213,17 @@ speechSynthesis.onvoiceschanged = loadVoices;
 window.onload = function() {
     lines = document.querySelectorAll(".line");
     loadVoices();
+
+    // スクロール位置復元
+    const y = localStorage.getItem("scrollY");
+
+    if (y !== null) {
+
+        window.scrollTo(
+            0,
+            parseInt(y)
+        );
+    }
 };
 
 // モード切替
@@ -273,6 +324,13 @@ function playOne(btn){
 
 // 🔄 再翻訳（個別）
 function retranslate(id){
+
+    // スクロール位置保存
+    localStorage.setItem(
+        "scrollY",
+        window.scrollY
+    );
+
     fetch("/eng/retranslate/" + id, { method: "POST" })
     .then(() => location.reload());
 }
@@ -299,4 +357,16 @@ function speak(text) {
 
     speechSynthesis.speak(uttr);
 }
+
+// スクロール位置保存
+window.addEventListener(
+    "beforeunload",
+    function () {
+        localStorage.setItem(
+            "scrollY",
+            window.scrollY
+        );
+    }
+);
+
 </script>

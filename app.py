@@ -1290,6 +1290,7 @@ def admin():
         int(TRANS_CACHE_HIT / TRANS_TOTAL * 100)
         if TRANS_TOTAL else 0
     )
+    
     # -----------------------
     # API料金推定
     # -----------------------
@@ -1381,6 +1382,57 @@ def admin():
             reverse=True
         )[:30]
         )
+# -----------------------
+# お気に入り一覧
+# -----------------------
+@app.route("/eng/favorites")
+def favorites():
+
+    conn = get_db()
+
+    data = conn.execute(
+        """
+        SELECT *
+        FROM conversations
+        WHERE favorite=1
+        ORDER BY id DESC
+        """
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "favorites.html",
+        data=data
+    )
+# -----------------------
+# お気に入り例文一覧
+# -----------------------
+@app.route("/eng/favorite_messages")
+def favorite_messages():
+
+    conn = get_db()
+
+    data = conn.execute(
+        """
+        SELECT
+            messages.*,
+            conversations.title
+        FROM messages
+        LEFT JOIN conversations
+        ON messages.conversation_id
+           = conversations.id
+        WHERE messages.favorite=1
+        ORDER BY messages.id DESC
+        """
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "favorite_messages.html",
+        data=data
+    )
 # -----------------------
 # 登録
 # -----------------------
@@ -1556,6 +1608,60 @@ def detail_multi(id):
         "detail_multi.html",
         conv=conv,
         messages=messages
+    )
+# -----------------------
+# 例文お気に入り切替
+# -----------------------
+@app.route(
+    "/eng/message_favorite/<int:id>",
+    methods=["POST"]
+)
+def toggle_message_favorite(id):
+
+    conn = get_db()
+
+    row = conn.execute(
+        """
+        SELECT favorite,
+               conversation_id
+        FROM messages
+        WHERE id=?
+        """,
+        (id,)
+    ).fetchone()
+
+    if row:
+
+        new_value = (
+            0
+            if row["favorite"] == 1
+            else 1
+        )
+
+        conn.execute(
+            """
+            UPDATE messages
+            SET favorite=?
+            WHERE id=?
+            """,
+            (new_value, id)
+        )
+
+        conn.commit()
+
+        conversation_id = row["conversation_id"]
+
+    else:
+
+        conversation_id = 0
+
+    conn.close()
+
+    return redirect(
+        url_for(
+            "detail_multi",
+            id=conversation_id
+        )
     )
 # -----------------------
 # 個別再翻訳
@@ -1803,6 +1909,53 @@ def edit_conversation(id):
         conv=conv,
         lines="\n".join(lines)
     )
+# -----------------------
+# お気に入り切替
+# -----------------------
+@app.route(
+    "/eng/favorite/<int:id>",
+    methods=["POST"]
+)
+def toggle_favorite(id):
+
+    conn = get_db()
+
+    row = conn.execute(
+        """
+        SELECT favorite
+        FROM conversations
+        WHERE id=?
+        """,
+        (id,)
+    ).fetchone()
+
+    if row:
+
+        new_value = (
+            0
+            if row["favorite"] == 1
+            else 1
+        )
+
+        conn.execute(
+            """
+            UPDATE conversations
+            SET favorite=?
+            WHERE id=?
+            """,
+            (new_value, id)
+        )
+
+        conn.commit()
+
+    conn.close()
+
+    next_page = request.form.get(
+        "next",
+        "/eng/"
+    )
+
+    return redirect(next_page)
 # -----------------------
 # 削除
 # -----------------------
