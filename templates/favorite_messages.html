@@ -40,14 +40,14 @@ margin-bottom:35px;
 padding:28px;
 border:3px solid #ccc;
 border-radius:15px;
-background:#fffde7;
+background:#fff8e1;
 ">
 
 <!-- タイトル -->
 <div style="
-font-size:26px;
+font-size:28px;
 color:#666;
-margin-bottom:15px;
+margin-bottom:12px;
 font-weight:bold;
 ">
 
@@ -70,7 +70,7 @@ margin-bottom:15px;
 <div style="
 font-size:34px;
 color:#555;
-margin-bottom:15px;
+margin-bottom:10px;
 ">
 
 {{ row.kana }}
@@ -79,8 +79,8 @@ margin-bottom:15px;
 
 <!-- 日本語 -->
 <div style="
-font-size:30px;
-color:#1565c0;
+font-size:32px;
+color:#007bff;
 font-weight:bold;
 margin-bottom:20px;
 ">
@@ -97,11 +97,12 @@ flex-wrap:wrap;
 ">
 
 <!-- ▶ 再生 -->
-<button onclick="playText(this)"
-data-text="{{ row.text }}"
+<button
+onclick="speak('{{ row.text }}')"
+
 style="
 font-size:24px;
-padding:14px 18px;
+padding:14px;
 background:#9c27b0;
 color:white;
 border:none;
@@ -112,14 +113,14 @@ border-radius:10px;">
 </button>
 
 <!-- ⭐ 解除 -->
-<form action="/eng/message_favorite/{{ row.id }}"
-method="post"
-style="display:inline;">
+<div style="display:inline;">
 
-<button type="submit"
+<button
+onclick="toggleMessageFavorite(this, {{ row.id }})"
+
 style="
 font-size:24px;
-padding:14px 18px;
+padding:14px;
 background:#FFD54F;
 color:black;
 border:none;
@@ -129,17 +130,16 @@ border-radius:10px;">
 
 </button>
 
-</form>
+</div>
 
 <!-- 📚 会話へ -->
-<a href="/eng/detail_multi/{{ row.conversation_id }}"
-style="text-decoration:none;">
+<button
+onclick="location.href='/eng/detail_multi/{{ row.conversation_id }}'"
 
-<button type="button"
 style="
 font-size:24px;
-padding:14px 18px;
-background:#2196F3;
+padding:14px;
+background:#4CAF50;
 color:white;
 border:none;
 border-radius:10px;">
@@ -147,8 +147,6 @@ border-radius:10px;">
 📚 会話へ
 
 </button>
-
-</a>
 
 </div>
 
@@ -160,19 +158,43 @@ border-radius:10px;">
 
 <script>
 
-function playText(btn){
+// 音声再生
+function speak(text){
 
     speechSynthesis.cancel();
 
     const uttr =
-        new SpeechSynthesisUtterance(
-            btn.dataset.text
-        );
+        new SpeechSynthesisUtterance(text);
 
     uttr.lang = "en-US";
     uttr.rate = 0.9;
 
     speechSynthesis.speak(uttr);
+}
+
+// ⭐ お気に入り解除
+function toggleMessageFavorite(btn, id){
+
+    fetch(
+        "/eng/message_favorite/" + id,
+        {
+            method: "POST"
+        }
+    )
+    .then(res => res.json())
+    .then(data => {
+
+        // 解除されたら消す
+        if(data.favorite == 0){
+
+            const item =
+                btn.closest("li");
+
+            if(item){
+                item.remove();
+            }
+        }
+    });
 }
 
 </script>

@@ -1,4 +1,41 @@
-<h1 style="font-size:40px;">{{ conv.title }}</h1>
+<div style="
+position:sticky;
+top:0;
+z-index:999;
+background:white;
+padding:10px;
+border-bottom:2px solid #ddd;
+display:flex;
+justify-content:space-between;
+align-items:center;
+">
+
+<h1 style="
+font-size:40px;
+margin:0;
+">
+
+{{ conv.title }}
+
+</h1>
+
+<button
+onclick="location.href='/eng/'"
+
+style="
+font-size:26px;
+padding:12px 20px;
+background:#4CAF50;
+color:white;
+border:none;
+border-radius:10px;
+white-space:nowrap;">
+
+← 戻る
+
+</button>
+
+</div>
 
 <hr>
 
@@ -27,6 +64,193 @@
 
 <hr>
 
+<!-- 🔵 再生速度 -->
+<div style="
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin:10px;
+">
+
+<button
+class="rateBtn"
+onclick="setRate(this, 0.7)"
+style="
+font-size:24px;
+padding:14px;">
+
+0.7
+
+</button>
+
+<button
+class="rateBtn"
+onclick="setRate(this, 0.8)"
+style="
+font-size:24px;
+padding:14px;">
+
+0.8
+
+</button>
+
+<button
+class="rateBtn"
+onclick="setRate(this, 0.9)"
+style="
+font-size:24px;
+padding:14px;
+background:#2196f3;
+color:white;">
+
+0.9
+
+</button>
+
+<button
+class="rateBtn"
+onclick="setRate(this, 1.0)"
+style="
+font-size:24px;
+padding:14px;">
+
+1.0
+
+</button>
+
+<button
+class="rateBtn"
+onclick="setRate(this, 1.1)"
+style="
+font-size:24px;
+padding:14px;">
+
+1.1
+
+</button>
+
+</div>
+
+<div id="rateLabel"
+style="
+font-size:28px;
+font-weight:bold;
+margin:10px;
+color:#2196f3;
+">
+
+現在速度: 0.9
+
+</div>
+
+<hr>
+
+<!-- 🔵 A/B 音声 -->
+<div style="
+margin:10px;
+padding:15px;
+border:2px solid #ccc;
+border-radius:12px;
+background:#f5f5f5;
+">
+
+<div style="
+font-size:28px;
+font-weight:bold;
+margin-bottom:15px;">
+
+🎙 音声設定
+
+</div>
+
+<!-- A -->
+<div style="margin-bottom:15px;">
+
+<span style="
+font-size:24px;
+font-weight:bold;">
+
+A音声:
+
+</span>
+
+<button
+id="voiceA_female"
+onclick="setVoiceA('female', this)"
+style="
+font-size:22px;
+padding:10px 16px;
+margin-left:10px;
+background:#2196f3;
+color:white;
+border:none;
+border-radius:8px;">
+
+女性
+
+</button>
+
+<button
+id="voiceA_male"
+onclick="setVoiceA('male', this)"
+style="
+font-size:22px;
+padding:10px 16px;
+border:none;
+border-radius:8px;">
+
+男性
+
+</button>
+
+</div>
+
+<!-- B -->
+<div>
+
+<span style="
+font-size:24px;
+font-weight:bold;">
+
+B音声:
+
+</span>
+
+<button
+id="voiceB_female"
+onclick="setVoiceB('female', this)"
+style="
+font-size:22px;
+padding:10px 16px;
+margin-left:10px;
+border:none;
+border-radius:8px;">
+
+女性
+
+</button>
+
+<button
+id="voiceB_male"
+onclick="setVoiceB('male', this)"
+style="
+font-size:22px;
+padding:10px 16px;
+background:#2196f3;
+color:white;
+border:none;
+border-radius:8px;">
+
+男性
+
+</button>
+
+</div>
+
+</div>
+
+<hr>
+
 <button onclick="toggleMode()" id="modeBtn"
 style="font-size:30px;padding:16px;width:100%;margin:10px;background:#673ab7;color:white;">
 🎓 学習モード
@@ -46,11 +270,11 @@ style="font-size:30px;padding:16px;width:100%;margin:10px;background:#673ab7;col
 
 {% for m in messages %}
 
-<!-- ★ NGがあるか判定 -->
 {% set has_ng = m.issues|length > 0 %}
 
 <div class="line"
 data-text="{{ m.text }}"
+data-speaker="{{ m.speaker }}"
 style="
 margin:20px;
 padding:20px;
@@ -65,12 +289,10 @@ background:#fff3e0;
 
 <b style="font-size:30px;">{{ m.speaker }}:</b>
 
-<!-- 英文 -->
 <div style="font-size:60px;font-weight:bold;">
 {{ m.text }}
 </div>
 
-<!-- カタカナ -->
 <div class="kana"
 data-normal="{{ m.kana }}"
 data-native="{{ m.kana_native }}"
@@ -78,13 +300,11 @@ style="font-size:40px;color:#555;margin-top:10px;">
 {{ m.kana }}
 </div>
 
-<!-- 日本語 -->
 <div class="jp"
 style="font-size:36px;color:#007bff;margin-top:10px;font-weight:bold;">
 {{ m.japanese }}
 </div>
 
-<!-- 🔴 NG表示 -->
 {% if m.issues %}
 <div style="
 margin-top:10px;
@@ -104,7 +324,6 @@ font-weight:bold;">
 </div>
 {% endif %}
 
-<!-- 🟡 注意表示 -->
 {% if m.warnings %}
 <div style="
 margin-top:10px;
@@ -125,8 +344,10 @@ font-weight:bold;">
 
 <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
 
-<button onclick="playOne(this)"
+<button
+onclick="playOne(this)"
 data-text="{{ m.text }}"
+data-speaker="{{ m.speaker }}"
 style="
 font-size:22px;
 background:#9c27b0;
@@ -135,7 +356,27 @@ padding:10px 14px;
 height:46px;
 border:none;
 border-radius:8px;">
+
 ▶ 再生
+
+</button>
+
+<!-- 🔁 2回 -->
+<button
+onclick="repeatOne(this)"
+data-text="{{ m.text }}"
+data-speaker="{{ m.speaker }}"
+style="
+font-size:22px;
+background:#ff9800;
+color:white;
+padding:10px 14px;
+height:46px;
+border:none;
+border-radius:8px;">
+
+🔁 2回
+
 </button>
 
 <button onclick="retranslate({{ m.id }})"
@@ -147,15 +388,16 @@ padding:10px 14px;
 height:46px;
 border:none;
 border-radius:8px;">
+
 🔄 再翻訳
+
 </button>
 
-<!-- ⭐ 例文お気に入り -->
-<form action="/eng/message_favorite/{{ m.id }}"
-method="post"
-style="display:inline;">
+<div style="display:inline;">
 
-<button type="submit"
+<button
+onclick="toggleMessageFavorite(this, {{ m.id }})"
+
 style="
 font-size:22px;
 padding:10px 14px;
@@ -167,14 +409,14 @@ border:none;
 border-radius:8px;">
 
 {% if m.favorite == 1 %}
-⭐ お気に入り済み
+⭐ お気に入り
 {% else %}
 ☆ お気に入り
 {% endif %}
 
 </button>
 
-</form>
+</div>
 
 </div>
 
@@ -192,6 +434,7 @@ style="font-size:30px;padding:20px;width:100%;">
 </button>
 
 <script>
+
 let playing = false;
 let training = false;
 let shadowing = false;
@@ -204,6 +447,11 @@ let jpVisible = true;
 let nativeMode = false;
 let voices = [];
 
+let speechRate = 0.9;
+
+let voiceTypeA = "female";
+let voiceTypeB = "male";
+
 function loadVoices(){
     voices = speechSynthesis.getVoices();
 }
@@ -211,10 +459,11 @@ function loadVoices(){
 speechSynthesis.onvoiceschanged = loadVoices;
 
 window.onload = function() {
+
     lines = document.querySelectorAll(".line");
+
     loadVoices();
 
-    // スクロール位置復元
     const y = localStorage.getItem("scrollY");
 
     if (y !== null) {
@@ -226,7 +475,87 @@ window.onload = function() {
     }
 };
 
-// モード切替
+// 🔵 速度変更
+function setRate(btn, rate){
+
+    speechRate = rate;
+
+    document.getElementById(
+        "rateLabel"
+    ).innerText =
+        "現在速度: " + rate;
+
+    document.querySelectorAll(
+        ".rateBtn"
+    ).forEach(b => {
+
+        b.style.background = "";
+        b.style.color = "";
+    });
+
+    btn.style.background =
+        "#2196f3";
+
+    btn.style.color =
+        "white";
+}
+
+// 🔵 A音声設定
+function setVoiceA(type, btn){
+
+    voiceTypeA = type;
+
+    document.getElementById(
+        "voiceA_female"
+    ).style.background = "";
+
+    document.getElementById(
+        "voiceA_female"
+    ).style.color = "";
+
+    document.getElementById(
+        "voiceA_male"
+    ).style.background = "";
+
+    document.getElementById(
+        "voiceA_male"
+    ).style.color = "";
+
+    btn.style.background =
+        "#2196f3";
+
+    btn.style.color =
+        "white";
+}
+
+// 🔵 B音声設定
+function setVoiceB(type, btn){
+
+    voiceTypeB = type;
+
+    document.getElementById(
+        "voiceB_female"
+    ).style.background = "";
+
+    document.getElementById(
+        "voiceB_female"
+    ).style.color = "";
+
+    document.getElementById(
+        "voiceB_male"
+    ).style.background = "";
+
+    document.getElementById(
+        "voiceB_male"
+    ).style.color = "";
+
+    btn.style.background =
+        "#2196f3";
+
+    btn.style.color =
+        "white";
+}
+
 function toggleMode(){
 
     nativeMode = !nativeMode;
@@ -234,134 +563,347 @@ function toggleMode(){
     const btn = document.getElementById("modeBtn");
 
     if(nativeMode){
-        btn.innerText = "🗣 ネイティブモード";
-        btn.style.background = "#e91e63";
+
+        btn.innerText =
+            "🗣 ネイティブモード";
+
+        btn.style.background =
+            "#e91e63";
+
     }else{
-        btn.innerText = "🎓 学習モード";
-        btn.style.background = "#673ab7";
+
+        btn.innerText =
+            "🎓 学習モード";
+
+        btn.style.background =
+            "#673ab7";
     }
 
     document.querySelectorAll(".kana").forEach(el=>{
+
         if(nativeMode){
-            el.innerText = el.dataset.native || el.dataset.normal;
+
+            el.innerText =
+                el.dataset.native ||
+                el.dataset.normal;
+
         }else{
-            el.innerText = el.dataset.normal;
+
+            el.innerText =
+                el.dataset.normal;
         }
     });
 }
 
-// 表示切替
 function toggleKana(){
+
     kanaVisible = !kanaVisible;
+
     document.querySelectorAll(".kana").forEach(el=>{
-        el.style.display = kanaVisible ? "block":"none";
+
+        el.style.display =
+            kanaVisible
+            ? "block"
+            : "none";
     });
 }
 
 function toggleJP(){
+
     jpVisible = !jpVisible;
+
     document.querySelectorAll(".jp").forEach(el=>{
-        el.style.display = jpVisible ? "block":"none";
+
+        el.style.display =
+            jpVisible
+            ? "block"
+            : "none";
     });
 }
 
-// 再生系
 function playAll() {
+
     stopAll();
+
     playing = true;
+
     index = 0;
+
     playLoop();
 }
 
 function playLoop() {
-    if (!playing || index >= lines.length) return;
-    speak(lines[index].dataset.text);
+
+    if (!playing || index >= lines.length)
+        return;
+
+    speak(
+        lines[index].dataset.text,
+        lines[index].dataset.speaker
+    );
+
     index++;
-    setTimeout(playLoop, 2500);
+
+    setTimeout(
+        playLoop,
+        2500
+    );
 }
 
 function trainingAll() {
+
     stopAll();
+
     training = true;
+
     index = 0;
+
     trainingLoop();
 }
 
 function trainingLoop() {
-    if (!training || index >= lines.length) return;
-    speak(lines[index].dataset.text);
+
+    if (!training || index >= lines.length)
+        return;
+
+    speak(
+        lines[index].dataset.text,
+        lines[index].dataset.speaker
+    );
+
     index++;
-    setTimeout(trainingLoop, 4000);
+
+    setTimeout(
+        trainingLoop,
+        4000
+    );
 }
 
 function shadowingStart() {
+
     stopAll();
+
     shadowing = true;
+
     index = 0;
+
     shadowLoop();
 }
 
 function shadowLoop() {
-    if (!shadowing || index >= lines.length) return;
-    speak(lines[index].dataset.text);
+
+    if (!shadowing || index >= lines.length)
+        return;
+
+    speak(
+        lines[index].dataset.text,
+        lines[index].dataset.speaker
+    );
+
     setTimeout(() => {
+
         index++;
+
         shadowLoop();
+
     }, 4000);
 }
 
 function stopAll() {
+
     playing = false;
     training = false;
     shadowing = false;
+
     speechSynthesis.cancel();
 }
 
 function playOne(btn){
+
     stopAll();
-    speak(btn.dataset.text);
+
+    speak(
+        btn.dataset.text,
+        btn.dataset.speaker
+    );
 }
 
-// 🔄 再翻訳（個別）
+// 🔁 2回再生
+function repeatOne(btn){
+
+    stopAll();
+
+    const text =
+        btn.dataset.text;
+
+    const speaker =
+        btn.dataset.speaker;
+
+    speak(
+        text,
+        speaker
+    );
+
+    setTimeout(() => {
+
+        speak(
+            text,
+            speaker
+        );
+
+    }, 2500);
+}
+
 function retranslate(id){
 
-    // スクロール位置保存
     localStorage.setItem(
         "scrollY",
         window.scrollY
     );
 
-    fetch("/eng/retranslate/" + id, { method: "POST" })
+    fetch(
+        "/eng/retranslate/" + id,
+        {
+            method: "POST"
+        }
+    )
     .then(() => location.reload());
 }
 
+function toggleMessageFavorite(btn, id){
+
+    fetch(
+        "/eng/message_favorite/" + id,
+        {
+            method: "POST"
+        }
+    )
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.favorite == 1){
+
+            btn.innerText =
+                "⭐ お気に入り";
+
+            btn.style.background =
+                "#FFD54F";
+
+        }else{
+
+            btn.innerText =
+                "☆ お気に入り";
+
+            btn.style.background =
+                "#BDBDBD";
+        }
+    });
+}
+
 // 音声
-function speak(text) {
+function speak(text, speaker) {
+
     speechSynthesis.cancel();
 
-    const uttr = new SpeechSynthesisUtterance(text);
+    const uttr =
+        new SpeechSynthesisUtterance(text);
 
     uttr.lang = 'en-US';
-    uttr.rate = 0.9;
+
+    uttr.rate = speechRate;
 
     if (voices.length > 0) {
 
-        const enVoice = voices.find(
-            v => v.lang.includes('en')
-        );
+        let selectedVoice = null;
 
-        if (enVoice){
-            uttr.voice = enVoice;
+        if (
+            speaker == "A" &&
+            voiceTypeA == "female"
+        ) {
+
+            selectedVoice = voices.find(v =>
+
+                v.lang.includes("en") &&
+
+                (
+                    v.name.includes("Female") ||
+                    v.name.includes("Samantha") ||
+                    v.name.includes("Karen")
+                )
+            );
+        }
+
+        else if (
+            speaker == "A" &&
+            voiceTypeA == "male"
+        ) {
+
+            selectedVoice = voices.find(v =>
+
+                v.lang.includes("en") &&
+
+                (
+                    v.name.includes("Male") ||
+                    v.name.includes("Daniel") ||
+                    v.name.includes("Alex")
+                )
+            );
+        }
+
+        else if (
+            speaker == "B" &&
+            voiceTypeB == "female"
+        ) {
+
+            selectedVoice = voices.find(v =>
+
+                v.lang.includes("en") &&
+
+                (
+                    v.name.includes("Female") ||
+                    v.name.includes("Samantha") ||
+                    v.name.includes("Karen")
+                )
+            );
+        }
+
+        else if (
+            speaker == "B" &&
+            voiceTypeB == "male"
+        ) {
+
+            selectedVoice = voices.find(v =>
+
+                v.lang.includes("en") &&
+
+                (
+                    v.name.includes("Male") ||
+                    v.name.includes("Daniel") ||
+                    v.name.includes("Alex")
+                )
+            );
+        }
+
+        if (!selectedVoice) {
+
+            selectedVoice = voices.find(
+                v => v.lang.includes("en")
+            );
+        }
+
+        if (selectedVoice) {
+
+            uttr.voice = selectedVoice;
         }
     }
 
     speechSynthesis.speak(uttr);
 }
 
-// スクロール位置保存
 window.addEventListener(
     "beforeunload",
     function () {
+
         localStorage.setItem(
             "scrollY",
             window.scrollY

@@ -142,11 +142,11 @@ color:black;">
 <div style="display:flex; gap:10px; margin-top:20px;">
 
 <!-- ⭐ お気に入り -->
-<form action="/eng/favorite/{{ row.id }}"
-method="post"
-style="flex:1;">
+<div style="flex:1;">
 
-<button type="submit"
+<button
+onclick="toggleFavorite(this, {{ row.id }})"
+
 style="
 font-size:32px;
 padding:25px;
@@ -164,7 +164,7 @@ border-radius:12px;">
 
 </button>
 
-</form>
+</div>
 
 <!-- 編集 -->
 <a href="/eng/edit/{{ row.id }}"
@@ -217,3 +217,37 @@ border-radius:12px;">
 {% endfor %}
 
 </ul>
+
+<script>
+
+function toggleFavorite(btn, id){
+
+    fetch(
+        "/eng/favorite/" + id,
+        {
+            method: "POST"
+        }
+    )
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.favorite == 1){
+
+            btn.innerText =
+                "⭐ お気に入り";
+
+            btn.style.background =
+                "#FFD54F";
+
+        }else{
+
+            btn.innerText =
+                "☆ お気に入り";
+
+            btn.style.background =
+                "#BDBDBD";
+        }
+    });
+}
+
+</script>

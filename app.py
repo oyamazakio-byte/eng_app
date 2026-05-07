@@ -6,6 +6,7 @@ import os
 import glob
 from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask import jsonify
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1657,12 +1658,11 @@ def toggle_message_favorite(id):
 
     conn.close()
 
-    return redirect(
-        url_for(
-            "detail_multi",
-            id=conversation_id
-        )
-    )
+    return jsonify({
+        "success": True,
+        "favorite": new_value
+    })
+    
 # -----------------------
 # 個別再翻訳
 # -----------------------
@@ -1950,12 +1950,10 @@ def toggle_favorite(id):
 
     conn.close()
 
-    next_page = request.form.get(
-        "next",
-        "/eng/"
-    )
-
-    return redirect(next_page)
+    return jsonify({
+        "success": True,
+        "favorite": new_value
+    })
 # -----------------------
 # 削除
 # -----------------------
