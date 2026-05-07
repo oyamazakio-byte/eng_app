@@ -395,11 +395,12 @@ def number_to_kana(num):
 # -----------------------
 def tune_katakana(text):
 
-    for k, v in NATIVE_DICT.items():
+    return re.sub(
+        r"\s+",
+        " ",
+        text
+    ).strip()
 
-        text = text.replace(k, v)
-
-    return re.sub(r"\s+", " ", text).strip()
 # -----------------------
 # 辞書ヒット率
 # -----------------------
@@ -591,7 +592,6 @@ def to_katakana(text):
             PHRASE_DICT[norm]
         )
 
-    """
     # 長文優先部分一致
     converted = partial_match(
         norm,
@@ -602,10 +602,7 @@ def to_katakana(text):
 
         print(f"[KANA] PARTIAL: {norm}")
 
-        converted = fallback_word_katakana(converted)
-
-        return tune_katakana(converted)
-    """
+        return ai_sentence_katakana(converted)
 
     # fallback
     if re.search(r"[a-z]", norm):
@@ -626,10 +623,29 @@ def to_katakana(text):
         return ai_sentence_katakana(text)
 
     return text
-def to_katakana_native(text):
+# -----------------------
+# ネイティブ風変換
+# -----------------------
+def convert_native_kana(text):
 
-    return to_katakana(text)
+    print("★★★★ convert_native_kana CALLED ★★★★")
 
+    if not text:
+        return ""
+
+    result = text
+
+    for key, value in NATIVE_DICT.items():
+
+        result = result.replace(
+            key,
+            value
+        )
+
+    print("[BEFORE]", text)
+    print("[AFTER ]", result)
+
+    return result
 # -----------------------
 # 単語辞書保存
 # -----------------------
@@ -674,6 +690,27 @@ def save_word_kana(word, kana):
 
         # メモリ辞書にも反映
         WORD_KANA_DICT[word] = kana
+
+# -----------------------
+# ネイティブ発音辞書
+# -----------------------
+NATIVE_DICT_PATH = (
+    "/home/bitnami/eng_app/dict/00_native.json"
+)
+
+if os.path.exists(NATIVE_DICT_PATH):
+
+    with open(
+        NATIVE_DICT_PATH,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
+        NATIVE_DICT = json.load(f)
+
+else:
+
+    NATIVE_DICT = {}
 
 # -----------------------
 # 翻訳キャッシュ保存
@@ -804,6 +841,7 @@ def ai_katakana(word):
 # AI文カタカナ
 # -----------------------
 def ai_sentence_katakana(text):
+
     global AI_KANA_COUNT
     global UNKNOWN_WORDS
     
@@ -812,23 +850,43 @@ def ai_sentence_katakana(text):
     try:
 
         response = client.chat.completions.create(
+
             model="gpt-4.1-mini",
+
             messages=[
+
                 {
                     "role": "system",
+
                     "content":
                     (
                         "Convert English sentence "
-                        "to Japanese katakana pronunciation only. "
-                        "Do NOT translate meaning. "
+                        "to Japanese katakana pronunciation "
+                        "for learners. "
+
+                        "Use clear textbook-style pronunciation. "
+
+                        "Do NOT use overly native pronunciation. "
+
+                        "For example: "
+
+                        "'do you' -> 'ドゥ ユー', "
+
+                        "'want to' -> 'ウォント トゥ', "
+
+                        "'have to' -> 'ハヴ トゥ'. "
+
                         "Output katakana only."
                     )
                 },
+
                 {
                     "role": "user",
                     "content": text
                 }
+
             ],
+
             temperature=0
         )
 
@@ -843,6 +901,7 @@ def ai_sentence_katakana(text):
         # カギ括弧除去
         result = result.replace("「", "")
         result = result.replace("」", "")
+
         # 句読点除去
         result = result.replace("。", "")
         result = result.replace("、", " ")
@@ -851,13 +910,16 @@ def ai_sentence_katakana(text):
             f"[AI SENTENCE KANA] "
             f"{text} -> {result}"
         )
+
         words = re.findall(
             r"[a-zA-Z]+",
             normalize(text)
         )
 
         for w in words:
+
             w = w.lower()
+
             if w not in WORD_KANA_DICT:
 
                 UNKNOWN_WORDS[w] = (
@@ -865,6 +927,7 @@ def ai_sentence_katakana(text):
                 )
 
                 print(f"[UNKNOWN WORD] {w}")
+
         result = tune_katakana(result)
         
         save_katakana_cache(
@@ -873,10 +936,6 @@ def ai_sentence_katakana(text):
         )
 
         return result
-    
-        
-
-
 
     except Exception as e:
 
@@ -1516,6 +1575,8 @@ def add_multi():
 
             kana = to_katakana(text)
 
+            kana_native = convert_native_kana(kana)
+
             japanese = translate(text)
 
             issues, warnings = detect_ng(
@@ -1546,7 +1607,7 @@ def add_multi():
                 text,
                 japanese,
                 kana,
-                kana
+                kana_native            
             ))
 
         conn.commit()
@@ -1677,10 +1738,16 @@ def retranslate(id):
     ).fetchone()
 
     if not m:
+
         conn.close()
+
         return {"status": "error"}
 
     text = m["text"]
+
+    kana = to_katakana(text)
+
+    kana_native = convert_native_kana(kana)
 
     conn.execute("""
     UPDATE messages
@@ -1690,12 +1757,13 @@ def retranslate(id):
     WHERE id=?
     """, (
         translate(text),
-        to_katakana(text),
-        to_katakana(text),
+        kana,
+        kana_native,
         id
     ))
 
     conn.commit()
+
     conn.close()
 
     return {"status": "ok"}
@@ -1714,6 +1782,7 @@ def retranslate_all():
         LIMIT 200
        """
     ).fetchall()
+
     for m in messages:
 
         text = m["text"]
@@ -1743,11 +1812,15 @@ def retranslate_all():
 
             kana = to_katakana(text)
 
+            kana_native = convert_native_kana(kana)
+
         except Exception as e:
 
             print(f"[KANA ERROR] {e}")
 
             kana = text
+
+            kana_native = text
 
         conn.execute("""
         UPDATE messages
@@ -1758,11 +1831,12 @@ def retranslate_all():
         """, (
             japanese,
             kana,
-            kana,
+            kana_native,
             m["id"]
         ))
 
     conn.commit()
+
     conn.close()
 
     return redirect("/eng/")
