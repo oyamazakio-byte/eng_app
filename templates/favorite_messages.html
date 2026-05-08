@@ -132,9 +132,12 @@ border-radius:10px;">
 
 </div>
 
-<!-- 📚 会話へ -->
+<!-- 📍 会話へ -->
 <button
-onclick="location.href='/eng/detail_multi/{{ row.conversation_id }}'"
+onclick="
+location.href=
+'/eng/detail_multi/{{ row.conversation_id }}?msg_id={{ row.id }}'
+"
 
 style="
 font-size:24px;
@@ -144,7 +147,7 @@ color:white;
 border:none;
 border-radius:10px;">
 
-📚 会話へ
+📍 会話へ
 
 </button>
 
