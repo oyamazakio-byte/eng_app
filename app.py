@@ -8,7 +8,11 @@ from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import jsonify
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder="static",
+    static_url_path="/static"
+)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
