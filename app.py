@@ -2066,7 +2066,6 @@ def delete_conversation(id):
     conn.close()
 
     return redirect("/eng")
-    
 # -----------------------
 # 統計保存
 # -----------------------
@@ -2079,6 +2078,182 @@ def save_stats_route():
     save_stats()
 
     return redirect("/eng/")
+# -----------------------
+# ニュース英語
+# -----------------------
+@app.route("/eng/news_add")
+def news_add():
+
+    return render_template(
+        "news_add.html"
+    )
+
+@app.route(
+    "/eng/news_import",
+    methods=["POST"]
+)
+def news_import():
+
+    raw = request.form.get(
+        "news_text",
+        ""
+    )
+    conv_title = request.form.get(
+        "conv_title",
+        "ニュース英語"
+    ).strip()
+
+    
+    lines = []
+
+    for line in raw.splitlines():
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        # -----------------
+        # NHK共有ボタン除去
+        # -----------------
+        if (
+            "Facebook" in line
+            or "XShare" in line
+            or "Share" == line
+        ):
+            continue
+
+        # -----------------
+        # 記号だけ除去
+        # -----------------
+        if re.fullmatch(
+            r"[•￼\s]+",
+            line
+        ):
+            continue
+
+        lines.append(line)
+
+    title = ""
+    body = ""
+
+    if len(lines) >= 1:
+
+        # -----------------
+        # NHK WORLD型
+        # -----------------
+        if (
+            len(lines) >= 2
+            and (
+                "hour ago" in lines[1]
+                or "hours ago" in lines[1]
+                or "day ago" in lines[1]
+                or "days ago" in lines[1]
+            )
+        ):
+
+            title = lines[0]
+
+            body = " ".join(
+                lines[2:]
+            )
+
+        # -----------------
+        # メール型
+        # -----------------
+        elif len(lines) >= 2:
+
+            title = (
+                lines[0]
+                + " "
+                + lines[1]
+            )
+
+            body = " ".join(
+                lines[2:]
+            )
+
+        # -----------------
+        # 1行だけ
+        # -----------------
+        else:
+
+            title = lines[0]
+
+    
+    speakers = [
+        "A",
+        "B"
+    ]
+
+    texts = [
+        title,
+        body
+    ]
+
+    conn = get_db()
+
+    cur = conn.execute(
+        """
+        INSERT INTO conversations (title)
+        VALUES (?)
+        """,
+        (conv_title,)
+    )
+
+    conv_id = cur.lastrowid
+
+    for i in range(len(texts)):
+
+        text = texts[i]
+
+        speaker = speakers[i]
+
+        kana = to_katakana(text)
+
+        kana_native = convert_native_kana(
+            kana
+        )
+
+        japanese = translate(text)
+
+        issues, warnings = detect_ng(
+            text,
+            kana,
+            japanese
+        )
+
+        conn.execute(
+            """
+            INSERT INTO messages
+            (
+                conversation_id,
+                speaker,
+                text,
+                japanese,
+                kana,
+                kana_native
+            )
+            VALUES
+            (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                conv_id,
+                speaker,
+                text,
+                japanese,
+                kana,
+                kana_native
+            )
+        )
+
+    conn.commit()
+
+    conn.close()
+
+    return redirect(
+        f"/eng/detail_multi/{conv_id}"
+    )
 # -----------------------
 # 起動
 # -----------------------
