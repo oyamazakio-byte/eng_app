@@ -25,12 +25,66 @@ align-items:center;
 gap:10px;
 ">
 
+<div style="
+display:flex;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+">
+
+<button
+onclick="playAll()"
+
+style="
+font-size:24px;
+padding:10px 16px;
+background:#2196f3;
+color:white;
+border:none;
+border-radius:10px;
+white-space:nowrap;">
+
+▶ 全体再生
+
+</button>
+<button
+onclick="pauseSpeech()"
+
+style="
+font-size:24px;
+padding:10px 16px;
+background:#9c27b0;
+color:white;
+border:none;
+border-radius:10px;
+white-space:nowrap;">
+
+⏸ 一時停止
+
+</button>
+
+<button
+onclick="resumeSpeech()"
+
+style="
+font-size:24px;
+padding:10px 16px;
+background:#009688;
+color:white;
+border:none;
+border-radius:10px;
+white-space:nowrap;">
+
+▶ 再開
+
+</button>
+
 <button
 onclick="scrollToTopLine()"
 
 style="
-font-size:26px;
-padding:12px 20px;
+font-size:24px;
+padding:10px 16px;
 background:#ff9800;
 color:white;
 border:none;
@@ -45,8 +99,8 @@ white-space:nowrap;">
 onclick="location.href='/eng/'"
 
 style="
-font-size:26px;
-padding:12px 20px;
+font-size:24px;
+padding:10px 16px;
 background:#4CAF50;
 color:white;
 border:none;
@@ -58,8 +112,9 @@ white-space:nowrap;">
 </button>
 
 </div>
-
 </div>
+</div>
+
 <hr>
 
 <!-- 🔵 全件再変換 -->
@@ -69,9 +124,6 @@ white-space:nowrap;">
   </button>
 </form>
 
-<button onclick="playAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;">
-▶ 全体再生
-</button>
 
 <button onclick="trainingAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;background:#ff9800;color:white;">
 🎧 トレーニング
@@ -84,6 +136,7 @@ white-space:nowrap;">
 <button onclick="stopAll()" style="font-size:34px;padding:20px;width:100%;margin:10px;">
 ⏹ 停止
 </button>
+
 
 <hr>
 
@@ -543,6 +596,8 @@ let voices = [];
 let speechRate = 0.9;
 let speechPitch = 1.0;
 
+let currentHighlight = null;
+
 let voiceTypeA = "female";
 let voiceTypeB = "male";
 
@@ -821,14 +876,15 @@ function playLoop() {
 
     speak(
         lines[index].dataset.text,
-        lines[index].dataset.speaker
-    );
+        lines[index].dataset.speaker,
+        lines[index],
 
-    index++;
+        function(){
 
-    setTimeout(
-        playLoop,
-        2500
+            index++;
+
+            playLoop();
+        }
     );
 }
 
@@ -850,14 +906,18 @@ function trainingLoop() {
 
     speak(
         lines[index].dataset.text,
-        lines[index].dataset.speaker
-    );
+        lines[index].dataset.speaker,
+        lines[index],
 
-    index++;
+        function(){
 
-    setTimeout(
-        trainingLoop,
-        4000
+            index++;
+
+            setTimeout(
+                trainingLoop,
+                1500
+            );
+        }
     );
 }
 
@@ -879,16 +939,19 @@ function shadowLoop() {
 
     speak(
         lines[index].dataset.text,
-        lines[index].dataset.speaker
+        lines[index].dataset.speaker,
+        lines[index],
+
+        function(){
+
+            index++;
+
+            setTimeout(
+                shadowLoop,
+                2500
+            );
+        }
     );
-
-    setTimeout(() => {
-
-        index++;
-
-        shadowLoop();
-
-    }, 4000);
 }
 
 function stopAll() {
@@ -900,13 +963,24 @@ function stopAll() {
     speechSynthesis.cancel();
 }
 
+function pauseSpeech(){
+
+    speechSynthesis.pause();
+}
+
+function resumeSpeech(){
+
+    speechSynthesis.resume();
+}
+
 function playOne(btn){
 
     stopAll();
 
     speak(
         btn.dataset.text,
-        btn.dataset.speaker
+        btn.dataset.speaker,
+        btn.closest(".line")
     );
 }
 
@@ -922,18 +996,20 @@ function repeatOne(btn){
         btn.dataset.speaker;
 
     speak(
-        text,
-        speaker
+    text,
+    speaker,
+    btn.closest(".line")
     );
 
     setTimeout(() => {
 
-        speak(
-            text,
-            speaker
-        );
+    speak(
+        text,
+        speaker,
+        btn.closest(".line")
+    );
 
-    }, 2500);
+}, 2500);
 }
 
 function retranslate(id){
@@ -983,9 +1059,38 @@ function toggleMessageFavorite(btn, id){
 }
 
 // 音声
-function speak(text, speaker) {
+function speak(text, speaker, el=null, callback=null) {
 
-    speechSynthesis.cancel();
+    
+
+    // 🔵 前回ハイライト解除
+    if(currentHighlight){
+
+        currentHighlight.style.background =
+            currentHighlight.dataset.bg;
+
+        currentHighlight.style.boxShadow = "";
+    }
+
+    // 🔵 今回ハイライト
+    if(el){
+
+        currentHighlight = el;
+
+        el.style.background =
+            "#fff59d";
+
+        el.style.boxShadow =
+            "0 0 20px rgba(255,235,59,0.9)";
+
+        // 🔵 上部へスクロール
+        el.scrollIntoView({
+
+            behavior: "smooth",
+
+            block: "start"
+        });
+    }
 
     const uttr =
         new SpeechSynthesisUtterance(text);
@@ -995,7 +1100,7 @@ function speak(text, speaker) {
     uttr.rate = speechRate;
 
     uttr.pitch = speechPitch;
-    
+
     if (voices.length > 0) {
 
         let selectedVoice = null;
@@ -1081,7 +1186,15 @@ function speak(text, speaker) {
         }
     }
 
-    speechSynthesis.speak(uttr);
+    uttr.onend = function(){
+
+    if(callback){
+
+        callback();
+    }
+};
+
+speechSynthesis.speak(uttr);
 }
 
 window.addEventListener(
