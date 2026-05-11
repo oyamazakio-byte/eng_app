@@ -8,6 +8,27 @@ from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import jsonify
 
+def split_news_sentences(text):
+
+    # 改行をスペースへ
+    text = text.replace("\n", " ")
+
+    # 文分割
+    sentences = re.split(
+        r'(?<=[.!?])\s+(?=[A-Z"])',
+        text
+    )
+
+    result = []
+    for i, s in enumerate(sentences, 1):
+
+        s = s.strip()
+
+        if s:
+            result.append(f"B{i}: {s}")
+
+    return "\n".join(result)
+
 app = Flask(
     __name__,
     static_folder="static",
@@ -213,9 +234,8 @@ def normalize(text):
     # 記号除去
     text = re.sub(r"[^a-z0-9\s]", " ", text)
 
-    # 空白整理
-    text = re.sub(r"\s+", " ", text)
-
+    # 空白整理（改行維持）
+    text = re.sub(r"[ \t]+", " ", text)
     
     text = text.strip()
 
@@ -1540,13 +1560,13 @@ def add_multi():
                     line[2:].strip()
                 )
 
-            elif line.startswith("B:"):
+            elif re.match(r"^B\d*:", line):
 
                 speakers.append("B")
-                texts.append(
-                    line[2:].strip()
-                )
 
+                text = re.sub(r"^B\d*:\s*", "", line)
+
+                texts.append(text.strip())
             else:
 
                 speakers.append(
@@ -1902,11 +1922,16 @@ def edit_conversation(id):
                 speaker = "A"
                 text = line[2:].strip()
 
-            elif line.startswith("B:"):
+            elif re.match(r"^B\d*:", line):
 
                 speaker = "B"
-                text = line[2:].strip()
 
+                text = re.sub(
+                    r"^B\d*:\s*",
+                    "",
+                    line
+          
+                )
             else:
 
                 speaker = speaker_toggle
@@ -2139,29 +2164,29 @@ def news_import():
 
     if len(lines) >= 1:
 
+        # 初期化
+        body = ""
+
         # -----------------
         # NHK WORLD型
+        # 日付行あり
         # -----------------
         if (
             len(lines) >= 2
-            and (
-                "hour ago" in lines[1]
-                or "hours ago" in lines[1]
-                or "day ago" in lines[1]
-                or "days ago" in lines[1]
-            )
+            and re.search(r"\d{1,2}:\d{2}", lines[1])
         ):
 
             title = lines[0]
 
-            body = " ".join(
-                lines[2:]
-            )
+            raw_body = " ".join(lines[2:])
+
+            body = split_news_sentences(raw_body)
 
         # -----------------
         # メール型
+        # タイトル2行
         # -----------------
-        elif len(lines) >= 2:
+        elif len(lines) >= 3:
 
             title = (
                 lines[0]
@@ -2169,9 +2194,9 @@ def news_import():
                 + lines[1]
             )
 
-            body = " ".join(
-                lines[2:]
-            )
+            raw_body = " ".join(lines[2:])
+
+            body = split_news_sentences(raw_body)
 
         # -----------------
         # 1行だけ
@@ -2180,16 +2205,36 @@ def news_import():
 
             title = lines[0]
 
-    
-    speakers = [
-        "A",
-        "B"
-    ]
+        # -----------------
+        # タイトル末尾の
+        # "7 hours ago"除去
+        # -----------------
+        title = re.sub(
+            r"\s+\d+\s+(hour|hours|day|days)\s+ago$",
+            "",
+            title
+        )
 
-    texts = [
-        title,
-        body
-    ]
+        texts = [title]
+
+        speakers = ["A"]
+
+        for line in body.split("\n"):
+
+            line = line.strip()
+
+            if not line:
+                continue
+
+            text = re.sub(
+                r"^B\d*:\s*",
+                "",
+                line
+            )
+
+            texts.append(text)
+
+            speakers.append("B")
 
     conn = get_db()
 
@@ -2207,10 +2252,18 @@ def news_import():
 
         text = texts[i]
 
+        # B1:, B2: 除去
+        if speakers[i] == "B":
+
+            text = re.sub(
+                r"^B\d*:\s*",
+                "",
+                text
+            )
+
         speaker = speakers[i]
 
         kana = to_katakana(text)
-
         kana_native = convert_native_kana(
             kana
         )
