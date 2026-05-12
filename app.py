@@ -1765,6 +1765,11 @@ def message_grammar(id):
             ""
         ).strip()
 
+        grammar_note = re.sub(
+            r'\n\s*\n+',
+            '\n',
+            grammar_note
+        )
         conn.execute(
             """
             UPDATE messages

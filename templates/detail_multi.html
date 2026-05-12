@@ -422,7 +422,7 @@ data-text="{{ m.text }}"
 data-speaker="{{ m.speaker }}"
 data-bg="{% if m.speaker == 'A' %}#e3f2fd{% else %}#fff3e0{% endif %}"
 style="
-margin:20px;
+margin:10px 20px;
 padding:20px;
 border-radius:12px;
 border:3px solid {% if has_ng %}#f44336{% else %}#ddd{% endif %};
@@ -488,8 +488,7 @@ font-weight:bold;">
 </div>
 {% endif %}
 
-<div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-
+<div style="margin-top:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
 <button
 onclick="playOne(this)"
 data-text="{{ m.text }}"
@@ -579,9 +578,6 @@ border-radius:8px;
 </button>
 
 {% endif %}
-</div>
-<div style="display:inline;">
-
 <button
 onclick="toggleMessageFavorite(this, {{ m.id }})"
 style="
@@ -601,9 +597,6 @@ border-radius:8px;">
 {% endif %}
 
 </button>
-
-</div>
-
 
 {% if m.grammar_note %}
 
@@ -640,14 +633,14 @@ padding:4px 8px;
 id="grammar-{{ m.id }}"
 style="
 display:none;
-margin-top:10px;
-padding:10px;
+margin-top:0;
+padding:2px 6px;
 background:#f5f5f5;
 border-left:6px solid #795548;
 border-radius:10px;
-font-size:26px;
-line-height:1.8;
-white-space:pre-wrap;
+font-size:24px;
+line-height:1.15;
+white-space:pre-line;
 ">
 
 {{ m.grammar_note }}
@@ -658,6 +651,7 @@ white-space:pre-wrap;
 </div>
 {% endfor %}
 
+</div>
 
 <hr>
 
