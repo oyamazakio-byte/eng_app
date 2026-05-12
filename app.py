@@ -1747,7 +1747,71 @@ def toggle_message_favorite(id):
         "success": True,
         "favorite": new_value
     })
-    
+# -----------------------
+# 文法ノート
+# -----------------------
+@app.route(
+    "/eng/message_grammar/<int:id>",
+    methods=["GET", "POST"]
+)
+def message_grammar(id):
+
+    conn = get_db()
+
+    if request.method == "POST":
+
+        grammar_note = request.form.get(
+            "grammar_note",
+            ""
+        ).strip()
+
+        conn.execute(
+            """
+            UPDATE messages
+            SET grammar_note=?
+            WHERE id=?
+            """,
+            (
+                grammar_note,
+                id
+            )
+        )
+
+        conn.commit()
+
+        row = conn.execute(
+            """
+            SELECT conversation_id
+            FROM messages
+            WHERE id=?
+            """,
+            (id,)
+        ).fetchone()
+
+        conn.close()
+
+        return redirect(
+            url_for(
+                "detail_multi",
+                id=row["conversation_id"]
+            )
+        )
+
+    row = conn.execute(
+        """
+        SELECT *
+        FROM messages
+        WHERE id=?
+        """,
+        (id,)
+    ).fetchone()
+
+    conn.close()
+
+    return render_template(
+        "message_grammar.html",
+        row=row
+    )    
 # -----------------------
 # 個別再翻訳
 # -----------------------
