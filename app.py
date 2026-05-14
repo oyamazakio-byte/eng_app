@@ -7,6 +7,7 @@ import glob
 from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import jsonify
+from datetime import datetime
 
 def split_news_sentences(text):
 
@@ -34,11 +35,13 @@ app = Flask(
     static_folder="static",
     static_url_path="/static"
 )
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
 
 DB_NAME = "/home/bitnami/eng_app/conversation.db"
+USAGE_DB_NAME = "/home/bitnami/eng_app/usage.db"
 DICT_DIR = "/home/bitnami/eng_app/dict"
 
 STATS_PATH = (
@@ -248,15 +251,23 @@ def normalize(text):
 # -----------------------
 def get_db():
 
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(
+        DB_NAME,
+        timeout=30
+    )
+    conn.execute(
+        "PRAGMA journal_mode=WAL"
+    )
+
     conn.row_factory = sqlite3.Row
 
     return conn
+    
 
 def init_db():
 
     conn = get_db()
-
+    
     conn.execute("""
     CREATE TABLE IF NOT EXISTS conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -275,9 +286,60 @@ def init_db():
         kana_native TEXT
     )
     """)
+    # API usage
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS api_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT,
+            model TEXT,
+            prompt_tokens INTEGER,
+            completion_tokens INTEGER,
+            total_tokens INTEGER,
+            cost REAL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+init_db()
+def get_usage_db():
+
+    conn = sqlite3.connect(
+        USAGE_DB_NAME,
+        timeout=30
+    )
+
+    conn.row_factory = sqlite3.Row
+
+    return conn
+
+# -----------------------
+# Usage DB 初期化
+# -----------------------
+def init_usage_db():
+
+    conn = get_usage_db()
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS api_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT,
+            model TEXT,
+            prompt_tokens INTEGER,
+            completion_tokens INTEGER,
+            total_tokens INTEGER,
+            cost REAL
+        )
+        """
+    )
 
     conn.commit()
     conn.close()
+
+init_usage_db()
 
 # -----------------------
 # 数値 → カタカナ
@@ -827,6 +889,60 @@ def ai_katakana(word):
             temperature=0
         )
 
+        usage = getattr(response, "usage", None)
+
+        print("[RESPONSE OK]")
+        print(f"[USAGE TYPE] {type(usage)}")
+        print(f"[USAGE VALUE] {usage}")
+        if usage:
+
+            prompt_tokens = usage.prompt_tokens
+            completion_tokens = usage.completion_tokens
+
+            cost = (
+                prompt_tokens * 0.0000004 +
+                completion_tokens * 0.0000016
+            )
+
+            print(
+                f"[API COST] "
+                f"prompt={prompt_tokens} "
+                f"completion={completion_tokens} "
+                f"cost=${cost:.8f}"
+            )
+
+            conn = get_usage_db()
+
+            print("[API INSERT START]")
+
+            conn.execute(
+                """
+                INSERT INTO api_usage (
+                    created_at,
+                    model,
+                    prompt_tokens,
+                    completion_tokens,
+                    total_tokens,
+                    cost
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                    "gpt-4.1-mini",
+                    prompt_tokens,
+                    completion_tokens,
+                    usage.total_tokens,
+                    cost
+                )
+            )
+
+            print("[API INSERT DONE]")
+
+            conn.commit()
+            conn.close()
         result = (
             response
             .choices[0]
@@ -951,7 +1067,7 @@ def ai_sentence_katakana(text):
                 )
 
                 print(f"[UNKNOWN WORD] {w}")
-
+                ai_katakana(w)
         result = tune_katakana(result)
         
         save_katakana_cache(
@@ -1323,11 +1439,14 @@ def index():
 # -----------------------
 @app.route("/eng/admin")
 def admin():
+
     q = request.args.get(
         "q",
         ""
     ).strip().lower()
+
     old_stats = load_json(STATS_PATH)
+
     phrase_hits = {}
     trans_hits = {}
     word_hits = {}
@@ -1374,7 +1493,28 @@ def admin():
         int(TRANS_CACHE_HIT / TRANS_TOTAL * 100)
         if TRANS_TOTAL else 0
     )
-    
+
+    # -----------------------
+    # API usage実測
+    # -----------------------
+    usage_conn = get_usage_db()
+
+    usage_row = usage_conn.execute(
+        """
+        SELECT
+            SUM(cost) as total_cost
+        FROM api_usage
+        """
+    ).fetchone()
+
+    usage_conn.close()
+
+    real_api_cost = (
+        usage_row["total_cost"]
+        if usage_row["total_cost"]
+        else 0
+    )
+
     # -----------------------
     # API料金推定
     # -----------------------
@@ -1382,7 +1522,6 @@ def admin():
     # 1回あたり概算
     kana_cost = 0.00015
     trans_cost = 0.0003
-
     estimated_cost = (
         AI_KANA_COUNT * kana_cost
         + AI_TRANS_COUNT * trans_cost
@@ -1460,6 +1599,7 @@ def admin():
         trans_cache_hits=trans_cache_hits,
         estimated_cost=estimated_cost,
         estimated_yen=estimated_yen,
+        real_api_cost=real_api_cost,
         unknown_words=sorted(
             UNKNOWN_WORDS.items(),
             key=lambda x: x[1],
@@ -2376,6 +2516,59 @@ def news_import():
     return redirect(
         f"/eng/detail_multi/{conv_id}"
     )
+
+print("TEST_USAGE_ROUTE_LOADED")
+# -----------------------
+# test_usage route
+# -----------------------
+@app.route("/eng/test_usage")
+def test_usage():
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI()
+
+        usage = client.organization.costs.list()
+
+        result = []
+
+        total_cost = 0.0
+
+        for item in usage.data:
+
+            try:
+                amount = item.amount.value
+                currency = item.amount.currency
+
+                total_cost += amount
+
+                result.append({
+                    "amount": amount,
+                    "currency": currency
+                })
+
+            except Exception as e:
+                print(f"[USAGE ITEM ERROR] {e}")
+
+        html = f"""
+        <h2>OpenAI Usage Test</h2>
+
+        <p><b>Total Cost:</b> ${total_cost:.4f}</p>
+
+        <pre>{result}</pre>
+        """
+
+        return html
+
+    except Exception as e:
+
+        print(f"[USAGE ERROR] {e}")
+
+        return f"""
+        <h2>Usage API Error</h2>
+        <pre>{e}</pre>
+        """
 # -----------------------
 # 起動
 # -----------------------
