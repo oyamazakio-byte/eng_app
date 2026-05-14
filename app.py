@@ -1027,8 +1027,55 @@ def ai_sentence_katakana(text):
 
             ],
 
-            temperature=0
+        temperature=0
         )
+        usage = getattr(response, "usage", None)
+
+        if usage:
+
+            prompt_tokens = usage.prompt_tokens
+            completion_tokens = usage.completion_tokens
+
+            cost = (
+                prompt_tokens * 0.0000004 +
+                completion_tokens * 0.0000016
+            )
+
+            print(
+                f"[AI SENTENCE COST] "
+                f"prompt={prompt_tokens} "
+                f"completion={completion_tokens} "
+                f"cost=${cost:.8f}"
+            )
+
+            conn = get_usage_db()
+
+            conn.execute(
+                """
+                INSERT INTO api_usage (
+                    created_at,
+                    model,
+                    prompt_tokens,
+                    completion_tokens,
+                    total_tokens,
+                    cost
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                    "gpt-4.1-mini",
+                    prompt_tokens,
+                    completion_tokens,
+                    usage.total_tokens,
+                    cost
+                )
+            )
+
+            conn.commit()
+            conn.close()
 
         result = (
             response
@@ -1084,12 +1131,13 @@ def ai_sentence_katakana(text):
         )
 
         return text
-    
 # -----------------------
 # AI翻訳
 # -----------------------
 def ai_translate(text):
+
     global AI_TRANS_COUNT
+
     AI_TRANS_COUNT += 1
     
     key = normalize(text)
@@ -1121,6 +1169,54 @@ def ai_translate(text):
             temperature=0
         )
 
+        usage = getattr(response, "usage", None)
+
+        if usage:
+
+            prompt_tokens = usage.prompt_tokens
+            completion_tokens = usage.completion_tokens
+
+            cost = (
+                prompt_tokens * 0.0000004 +
+                completion_tokens * 0.0000016
+            )
+
+            print(
+                f"[AI TRANS COST] "
+                f"prompt={prompt_tokens} "
+                f"completion={completion_tokens} "
+                f"cost=${cost:.8f}"
+            )
+
+            conn = get_usage_db()
+
+            conn.execute(
+                """
+                INSERT INTO api_usage (
+                    created_at,
+                    model,
+                    prompt_tokens,
+                    completion_tokens,
+                    total_tokens,
+                    cost
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                    "gpt-4.1-mini",
+                    prompt_tokens,
+                    completion_tokens,
+                    usage.total_tokens,
+                    cost
+                )
+            )
+
+            conn.commit()
+            conn.close()
+
         result = (
             response
             .choices[0]
@@ -1135,15 +1231,18 @@ def ai_translate(text):
             text,
             result
         )
+
         return result
+
     except Exception as e:
 
         print(f"[AI ERROR] {e}")
 
         return text
+
 # -----------------------
 # 翻訳
-# -----------------------
+# -----------------------   
 def translate(text):
 
     global TRANS_CACHE_HIT
@@ -1493,7 +1592,7 @@ def admin():
         int(TRANS_CACHE_HIT / TRANS_TOTAL * 100)
         if TRANS_TOTAL else 0
     )
-
+    
     # -----------------------
     # API usage実測
     # -----------------------
@@ -1502,7 +1601,9 @@ def admin():
     usage_row = usage_conn.execute(
         """
         SELECT
-            SUM(cost) as total_cost
+            SUM(cost) as total_cost,
+            SUM(total_tokens) as total_tokens,
+            COUNT(*) as api_calls
         FROM api_usage
         """
     ).fetchone()
@@ -1513,6 +1614,36 @@ def admin():
         usage_row["total_cost"]
         if usage_row["total_cost"]
         else 0
+    )
+
+    total_tokens = (
+        usage_row["total_tokens"]
+        if usage_row["total_tokens"]
+        else 0
+    )
+
+    api_calls = (
+        usage_row["api_calls"]
+        if usage_row["api_calls"]
+        else 0
+    )
+
+    avg_cost = (
+        real_api_cost / api_calls
+        if api_calls else 0
+    )
+
+    # -----------------------
+    # API予算
+    # -----------------------
+    API_BUDGET_USD = 5.0
+
+    remain_budget = (
+        API_BUDGET_USD - real_api_cost
+    )
+
+    usage_percent = (
+        real_api_cost / API_BUDGET_USD * 100
     )
 
     # -----------------------
@@ -1600,6 +1731,12 @@ def admin():
         estimated_cost=estimated_cost,
         estimated_yen=estimated_yen,
         real_api_cost=real_api_cost,
+        total_tokens=total_tokens,
+        api_calls=api_calls,
+        avg_cost=avg_cost,
+        api_budget_usd=API_BUDGET_USD,
+        remain_budget=remain_budget,
+        usage_percent=usage_percent,
         unknown_words=sorted(
             UNKNOWN_WORDS.items(),
             key=lambda x: x[1],

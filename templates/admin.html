@@ -159,6 +159,66 @@ ${{ "%.8f"|format(real_api_cost) }}
 </span>
 
 <br>
+
+🔢 TOTAL TOKENS:
+<span style="
+color:#1565C0;
+font-weight:bold;
+">
+{{ total_tokens }}
+</span>
+
+<br>
+
+📞 API CALLS:
+<span style="
+color:#2E7D32;
+font-weight:bold;
+">
+{{ api_calls }}
+</span>
+
+<br>
+
+📊 AVG COST:
+<span style="
+color:#6A1B9A;
+font-weight:bold;
+">
+${{ "%.8f"|format(avg_cost) }}
+</span>
+
+<br><br>
+
+💳 API BUDGET:
+<span style="
+color:#EF6C00;
+font-weight:bold;
+">
+${{ "%.2f"|format(api_budget_usd) }}
+</span>
+
+<br>
+
+💰 REMAIN:
+<span style="
+color:#2E7D32;
+font-weight:bold;
+">
+${{ "%.6f"|format(remain_budget) }}
+</span>
+
+<br>
+
+📈 USAGE RATE:
+<span style="
+color:#C62828;
+font-weight:bold;
+">
+{{ "%.4f"|format(usage_percent) }}%
+</span>
+
+<br>
 <hr style="margin:15px 0;">
 
 💾 KANA HIT:
