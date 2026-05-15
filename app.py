@@ -3,6 +3,7 @@ import sqlite3
 import re
 import json
 import os
+import requests
 import glob
 from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -42,6 +43,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
 
 DB_NAME = "/home/bitnami/eng_app/conversation.db"
 USAGE_DB_NAME = "/home/bitnami/eng_app/usage.db"
+API_BUDGET_USD = 5.0
 DICT_DIR = "/home/bitnami/eng_app/dict"
 
 STATS_PATH = (
@@ -340,7 +342,102 @@ def init_usage_db():
     conn.close()
 
 init_usage_db()
+# -----------------------
+# OpenAI billing取得
+# -----------------------
+def get_openai_balance():
 
+    try:
+
+        headers = {
+            "Authorization":
+            f"Bearer {os.getenv('OPENAI_API_KEY')}"
+        }
+        response = requests.get(
+            "https://api.openai.com/v1/dashboard/billing/credit_grants",
+            headers=headers,
+            timeout=20
+        )
+
+        data = response.json()
+
+        print("[OPENAI BILLING RAW]")
+        print(data)
+
+        return {
+            "total_granted":
+                data.get("total_granted", 0),
+
+            "total_used":
+                data.get("total_used", 0),
+
+            "total_available":
+                data.get("total_available", 0)
+        }
+
+    except Exception as e:
+
+        print(f"[OPENAI BILLING ERROR] {e}")
+
+        return {
+            "total_granted": 0,
+            "total_used": 0,
+            "total_available": 0
+        }
+# -----------------------
+# OpenAI total cost取得
+# -----------------------
+def get_openai_total_cost():
+
+    try:
+
+        headers = {
+            "Authorization":
+            f"Bearer {os.getenv('OPENAI_API_KEY')}"
+        }
+
+        response = requests.get(
+            "https://api.openai.com/v1/organization/costs",
+            headers=headers,
+            timeout=20
+        )
+
+        data = response.json()
+
+        print("[OPENAI COST RAW]")
+        print(data)
+
+        total_cost = 0.0
+
+        for item in data.get("data", []):
+
+            try:
+
+                amount = (
+                    item["amount"]["value"]
+                )
+
+                total_cost += amount
+
+            except Exception as e:
+
+                print(
+                    f"[OPENAI COST ITEM ERROR] {e}"
+                )
+
+        print(
+            f"[OPENAI TOTAL COST] ${total_cost}"
+        )
+
+        return total_cost
+
+    except Exception as e:
+
+        print(
+            f"[OPENAI TOTAL COST ERROR] {e}"
+        )
+
+        return 0.0
 # -----------------------
 # 数値 → カタカナ
 # -----------------------
@@ -1592,51 +1689,46 @@ def admin():
         int(TRANS_CACHE_HIT / TRANS_TOTAL * 100)
         if TRANS_TOTAL else 0
     )
-    
-    # -----------------------
-    # API usage実測
-    # -----------------------
-    usage_conn = get_usage_db()
 
-    usage_row = usage_conn.execute(
+    # -----------------------
+    # API Usage Summary
+    # -----------------------
+    conn = get_usage_db()
+
+    usage_summary = conn.execute(
         """
         SELECT
-            SUM(cost) as total_cost,
-            SUM(total_tokens) as total_tokens,
-            COUNT(*) as api_calls
+            COUNT(*) as calls,
+            ROUND(SUM(cost),4) as total_cost,
+            ROUND(AVG(total_tokens),1) as avg_tokens
         FROM api_usage
         """
     ).fetchone()
 
-    usage_conn.close()
-
-    real_api_cost = (
-        usage_row["total_cost"]
-        if usage_row["total_cost"]
-        else 0
-    )
-
-    total_tokens = (
-        usage_row["total_tokens"]
-        if usage_row["total_tokens"]
-        else 0
-    )
-
-    api_calls = (
-        usage_row["api_calls"]
-        if usage_row["api_calls"]
-        else 0
-    )
-
-    avg_cost = (
-        real_api_cost / api_calls
-        if api_calls else 0
-    )
+    conn.close()
 
     # -----------------------
-    # API予算
+    # API usage実測
     # -----------------------
-    API_BUDGET_USD = 5.0
+    conn = get_usage_db()
+
+    row = conn.execute(
+        """
+        SELECT
+            COUNT(*) as calls,
+            ROUND(SUM(cost),8) as total_cost,
+            SUM(total_tokens) as total_tokens,
+            ROUND(AVG(cost),8) as avg_cost
+        FROM api_usage
+        """
+    ).fetchone()
+
+    conn.close()
+
+    api_calls = row["calls"] or 0
+    real_api_cost = row["total_cost"] or 0
+    total_tokens = row["total_tokens"] or 0
+    avg_cost = row["avg_cost"] or 0
 
     remain_budget = (
         API_BUDGET_USD - real_api_cost
@@ -1647,18 +1739,40 @@ def admin():
     )
 
     # -----------------------
+    # OpenAI billing
+    # -----------------------
+    billing = get_openai_balance()
+
+    openai_total_granted = (
+        billing["total_granted"]
+    )
+
+    openai_total_used = (
+        billing["total_used"]
+    )
+
+    openai_total_available = (
+        billing["total_available"]
+    )
+
+    openai_total_cost = (
+        get_openai_total_cost()
+    )
+
+    # -----------------------
     # API料金推定
     # -----------------------
-
-    # 1回あたり概算
     kana_cost = 0.00015
     trans_cost = 0.0003
+
     estimated_cost = (
         AI_KANA_COUNT * kana_cost
         + AI_TRANS_COUNT * trans_cost
     )
 
-    estimated_yen = estimated_cost * 150
+    estimated_yen = (
+        estimated_cost * 150
+    )
 
     if q:
 
@@ -1697,6 +1811,7 @@ def admin():
             for k, v in TRANSLATION_CACHE.items()
             if q in k
         }
+
     return render_template(
         "admin.html",
 
@@ -1728,21 +1843,97 @@ def admin():
         native_hits=native_hits,
         kana_cache_hits=kana_cache_hits,
         trans_cache_hits=trans_cache_hits,
+
         estimated_cost=estimated_cost,
         estimated_yen=estimated_yen,
+
         real_api_cost=real_api_cost,
         total_tokens=total_tokens,
         api_calls=api_calls,
         avg_cost=avg_cost,
+
         api_budget_usd=API_BUDGET_USD,
         remain_budget=remain_budget,
         usage_percent=usage_percent,
+
+        openai_total_granted=openai_total_granted,
+        openai_total_used=openai_total_used,
+        openai_total_available=openai_total_available,
+        openai_total_cost=openai_total_cost,
+
+        usage_summary=usage_summary,
+
         unknown_words=sorted(
             UNKNOWN_WORDS.items(),
             key=lambda x: x[1],
             reverse=True
         )[:30]
-        )
+    )
+
+# -----------------------
+# API Usage ダッシュボード
+# -----------------------
+@app.route("/eng/admin_usage")
+def admin_usage():
+
+    conn = get_usage_db()
+
+    summary = conn.execute(
+        """
+        SELECT
+            COUNT(*) as calls,
+            ROUND(SUM(cost),4) as total_cost,
+            ROUND(AVG(total_tokens),1) as avg_tokens
+        FROM api_usage
+        """
+    ).fetchone()
+
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    today_data = conn.execute(
+        """
+        SELECT
+            COUNT(*) as calls,
+            ROUND(SUM(cost),4) as cost
+        FROM api_usage
+        WHERE created_at LIKE ?
+        """,
+        (f"{today}%",)
+    ).fetchone()
+
+    daily = conn.execute(
+        """
+        SELECT
+            substr(created_at,1,10) as day,
+            COUNT(*) as calls,
+            SUM(total_tokens) as tokens,
+            ROUND(SUM(cost),4) as cost
+        FROM api_usage
+        GROUP BY day
+        ORDER BY day DESC
+        """
+    ).fetchall()
+
+    model_stats = conn.execute(
+        """
+        SELECT
+            model,
+            COUNT(*) as calls,
+            ROUND(SUM(cost),4) as cost
+        FROM api_usage
+        GROUP BY model
+        """
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "admin_usage.html",
+        summary=summary,
+        today_data=today_data,
+        daily=daily,
+        model_stats=model_stats
+    )
 # -----------------------
 # お気に入り一覧
 # -----------------------

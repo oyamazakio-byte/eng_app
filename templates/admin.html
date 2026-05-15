@@ -111,6 +111,58 @@ font-weight:bold;
 <br>
 <hr style="margin:15px 0;">
 
+<!-- 🆕 API Usage Summary -->
+
+📊 TOTAL CALLS:
+<span style="
+color:#1565C0;
+font-weight:bold;
+">
+{{ usage_summary["calls"] }}
+</span>
+
+<br>
+
+💰 TOTAL COST:
+<span style="
+color:#E65100;
+font-weight:bold;
+">
+${{ usage_summary["total_cost"] }}
+</span>
+
+<br>
+
+🔢 AVG TOKENS:
+<span style="
+color:#6A1B9A;
+font-weight:bold;
+">
+{{ usage_summary["avg_tokens"] }}
+</span>
+
+<br><br>
+
+<a href="/eng/admin_usage"
+style="
+display:block;
+background:#3949AB;
+color:white;
+text-align:center;
+padding:18px;
+border-radius:12px;
+text-decoration:none;
+font-size:28px;
+font-weight:bold;
+margin-bottom:20px;
+">
+
+📈 詳細 Usage Dashboard
+
+</a>
+
+<hr style="margin:15px 0;">
+
 🤖 AI KANA:
 <span style="
 color:#1976D2;
@@ -216,6 +268,46 @@ color:#C62828;
 font-weight:bold;
 ">
 {{ "%.4f"|format(usage_percent) }}%
+</span>
+
+<br><br>
+
+🏦 OPENAI TOTAL:
+<span style="
+color:#1565C0;
+font-weight:bold;
+">
+${{ "%.2f"|format(openai_total_granted) }}
+</span>
+
+<br>
+
+💸 OPENAI USED:
+<span style="
+color:#C62828;
+font-weight:bold;
+">
+${{ "%.2f"|format(openai_total_used) }}
+</span>
+
+<br>
+
+💵 OPENAI BALANCE:
+<span style="
+color:#2E7D32;
+font-weight:bold;
+">
+${{ "%.2f"|format(openai_total_available) }}
+</span>
+
+<br>
+
+🏛 OPENAI OFFICIAL COST:
+<span style="
+color:#6A1B9A;
+font-weight:bold;
+">
+${{ "%.4f"|format(openai_total_cost) }}
 </span>
 
 <br>

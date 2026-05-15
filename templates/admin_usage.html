@@ -1,0 +1,213 @@
+<h1 style="
+font-size:56px;
+text-align:center;
+margin-bottom:30px;
+">
+
+📊 API Usage Dashboard
+
+</h1>
+
+<!-- Summary -->
+<div style="
+background:#f5f5f5;
+padding:20px;
+border-radius:15px;
+border:3px solid #ccc;
+margin-bottom:25px;
+font-size:28px;
+line-height:1.8;
+">
+
+<h2 style="margin-top:0;">Summary</h2>
+
+📞 Total Calls:
+<b>{{ summary["calls"] }}</b>
+<br>
+
+💰 Total Cost:
+<b>${{ summary["total_cost"] }}</b>
+<br>
+
+🔢 Average Tokens:
+<b>{{ summary["avg_tokens"] }}</b>
+
+</div>
+
+<!-- Today -->
+<div style="
+background:#f5f5f5;
+padding:20px;
+border-radius:15px;
+border:3px solid #ccc;
+margin-bottom:25px;
+font-size:28px;
+line-height:1.8;
+">
+
+<h2 style="margin-top:0;">Today</h2>
+
+📞 Calls:
+<b>{{ today_data["calls"] }}</b>
+<br>
+
+💰 Cost:
+<b>${{ today_data["cost"] }}</b>
+
+</div>
+
+<!-- Daily Stats -->
+<div style="
+background:#fff;
+padding:20px;
+border-radius:15px;
+border:3px solid #ccc;
+margin-bottom:25px;
+overflow-x:auto;
+">
+
+<h2 style="
+font-size:38px;
+margin-top:0;
+">
+
+📅 Daily Stats
+
+</h2>
+
+<table style="
+width:100%;
+border-collapse:collapse;
+font-size:26px;
+">
+
+<tr style="background:#eee;">
+
+<th style="padding:12px;border:2px solid #999;">
+Date
+</th>
+
+<th style="padding:12px;border:2px solid #999;">
+Calls
+</th>
+
+<th style="padding:12px;border:2px solid #999;">
+Tokens
+</th>
+
+<th style="padding:12px;border:2px solid #999;">
+Cost
+</th>
+
+</tr>
+
+{% for r in daily %}
+
+<tr>
+
+<td style="padding:10px;border:2px solid #ccc;">
+{{ r["day"] }}
+</td>
+
+<td style="padding:10px;border:2px solid #ccc;text-align:right;">
+{{ r["calls"] }}
+</td>
+
+<td style="padding:10px;border:2px solid #ccc;text-align:right;">
+{{ r["tokens"] }}
+</td>
+
+<td style="padding:10px;border:2px solid #ccc;text-align:right;">
+${{ r["cost"] }}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+<!-- Model Stats -->
+<div style="
+background:#fff;
+padding:20px;
+border-radius:15px;
+border:3px solid #ccc;
+margin-bottom:25px;
+overflow-x:auto;
+">
+
+<h2 style="
+font-size:38px;
+margin-top:0;
+">
+
+🤖 Model Stats
+
+</h2>
+
+<table style="
+width:100%;
+border-collapse:collapse;
+font-size:26px;
+">
+
+<tr style="background:#eee;">
+
+<th style="padding:12px;border:2px solid #999;">
+Model
+</th>
+
+<th style="padding:12px;border:2px solid #999;">
+Calls
+</th>
+
+<th style="padding:12px;border:2px solid #999;">
+Cost
+</th>
+
+</tr>
+
+{% for r in model_stats %}
+
+<tr>
+
+<td style="padding:10px;border:2px solid #ccc;">
+{{ r["model"] }}
+</td>
+
+<td style="padding:10px;border:2px solid #ccc;text-align:right;">
+{{ r["calls"] }}
+</td>
+
+<td style="padding:10px;border:2px solid #ccc;text-align:right;">
+${{ r["cost"] }}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+<!-- 🔙 戻る -->
+<a href="/eng/admin"
+style="
+display:block;
+font-size:36px;
+padding:20px;
+background:#4CAF50;
+color:white;
+text-align:center;
+border-radius:15px;
+text-decoration:none;
+margin-top:30px;
+">
+
+← 管理画面へ戻る
+
+</a>
