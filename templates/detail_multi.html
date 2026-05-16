@@ -418,11 +418,14 @@ style="font-size:30px;padding:16px;width:100%;margin:10px;background:#673ab7;col
 {% set has_ng = m.issues|length > 0 %}
 <div
 id="msg-{{ m.id }}"
-class="line"
+class="line moreLine"
 data-text="{{ m.text }}"
 data-speaker="{{ m.speaker }}"
 data-bg="{% if m.speaker == 'A' %}#e3f2fd{% else %}#fff3e0{% endif %}"
 style="
+{% if loop.index > 8 %}
+display:none;
+{% endif %}
 margin:10px 20px;
 padding:20px;
 border-radius:12px;
@@ -431,8 +434,7 @@ border:3px solid {% if has_ng %}#f44336{% else %}#ddd{% endif %};
 background:#e3f2fd;
 {% else %}
 background:#fff3e0;
-{% endif %}
-">
+{% endif %}">
 
 <b style="font-size:30px;">{{ m.speaker }}:</b>
 
@@ -674,8 +676,25 @@ white-space:pre-line;
 
 </div>
 
-<hr>
+<button
+id="moreBtn"
+onclick="showMore()"
+style="
+font-size:32px;
+padding:20px;
+width:100%;
+margin-top:20px;
+background:#ff9800;
+color:white;
+border:none;
+border-radius:12px;
+">
 
+▼ 続きを表示
+
+</button>
+
+<hr>
 <button onclick="location.href='/eng/'"
 style="font-size:30px;padding:20px;width:100%;">
 ← 一覧に戻る
@@ -1341,6 +1360,19 @@ function scrollToTopLine(){
 
         }, 1500);
     }
+}
+function showMore(){
+
+    document
+    .querySelectorAll(".moreLine")
+    .forEach(el => {
+
+        el.style.display = "block";
+    });
+
+    document
+    .getElementById("moreBtn")
+    .style.display = "none";
 }
 function toggleGrammar(id){
 
