@@ -10,10 +10,33 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import jsonify
 from datetime import datetime
 
+USD_TO_JPY = 150
+
 def split_news_sentences(text):
 
     # 改行をスペースへ
     text = text.replace("\n", " ")
+
+    # 略語保護
+    abbreviations = {
+        "U.S.": "__US__",
+        "U.K.": "__UK__",
+        "Mr.": "__MR__",
+        "Mrs.": "__MRS__",
+        "Ms.": "__MS__",
+        "Dr.": "__DR__",
+        "Prof.": "__PROF__",
+        "Inc.": "__INC__",
+        "Ltd.": "__LTD__",
+        "Jr.": "__JR__",
+        "Sr.": "__SR__",
+        "e.g.": "__EG__",
+        "i.e.": "__IE__"
+    }
+
+    # 一時置換
+    for k, v in abbreviations.items():
+        text = text.replace(k, v)
 
     # 文分割
     sentences = re.split(
@@ -22,15 +45,19 @@ def split_news_sentences(text):
     )
 
     result = []
+
     for i, s in enumerate(sentences, 1):
 
         s = s.strip()
+
+        # 略語復元
+        for k, v in abbreviations.items():
+            s = s.replace(v, k)
 
         if s:
             result.append(f"B{i}: {s}")
 
     return "\n".join(result)
-
 app = Flask(
     __name__,
     static_folder="static",
@@ -1733,7 +1760,8 @@ def admin():
     remain_budget = (
         API_BUDGET_USD - real_api_cost
     )
-
+    api_budget_yen = API_BUDGET_USD * USD_TO_JPY
+    remain_budget_yen = remain_budget * USD_TO_JPY
     usage_percent = (
         real_api_cost / API_BUDGET_USD * 100
     )
@@ -1856,6 +1884,9 @@ def admin():
         remain_budget=remain_budget,
         usage_percent=usage_percent,
 
+        api_budget_yen=api_budget_yen,
+        remain_budget_yen=remain_budget_yen,
+        
         openai_total_granted=openai_total_granted,
         openai_total_used=openai_total_used,
         openai_total_available=openai_total_available,
@@ -1926,13 +1957,74 @@ def admin_usage():
     ).fetchall()
 
     conn.close()
+    # 円換算追加
+    summary_cost_yen = float(summary["total_cost"]) * USD_TO_JPY
+    today_cost_yen = float(today_data["cost"]) * USD_TO_JPY
 
+    daily_yen = []
+
+    for r in daily:
+        row = dict(r)
+        row["cost_yen"] = float(r["cost"]) * USD_TO_JPY
+        daily_yen.append(row)
+
+    model_stats_yen = []
+
+    for r in model_stats:
+        row = dict(r)
+        row["cost_yen"] = float(r["cost"]) * USD_TO_JPY
+        model_stats_yen.append(row)
+    # -----------------------
+    # API COST SUMMARY
+    # -----------------------
+
+    real_cost = float(summary["total_cost"])
+
+    total_tokens = 0
+
+    for r in daily:
+        total_tokens += int(r["tokens"])
+
+    api_calls = int(summary["calls"])
+
+    if api_calls > 0:
+        avg_cost = real_cost / api_calls
+    else:
+        avg_cost = 0
+
+    avg_cost_yen = avg_cost * USD_TO_JPY
+    budget = 5.00
+
+    remain = budget - real_cost
+
+    usage_rate = (real_cost / budget) * 100
+
+    real_cost_yen = real_cost * USD_TO_JPY
+    budget_yen = budget * USD_TO_JPY
+    remain_yen = remain * USD_TO_JPY
+    
+        
     return render_template(
         "admin_usage.html",
         summary=summary,
         today_data=today_data,
-        daily=daily,
-        model_stats=model_stats
+        daily=daily_yen,
+        model_stats=model_stats_yen,
+
+        summary_cost_yen=summary_cost_yen,
+        today_cost_yen=today_cost_yen,
+        
+        real_cost=real_cost,
+        total_tokens=total_tokens,
+        api_calls=api_calls,
+        avg_cost=avg_cost,
+        budget=budget,
+        remain=remain,
+        usage_rate=usage_rate,
+        real_cost_yen=real_cost_yen,
+        budget_yen=budget_yen,
+        remain_yen=remain_yen,
+        avg_cost_yen=avg_cost_yen,
     )
 # -----------------------
 # お気に入り一覧
