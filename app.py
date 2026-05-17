@@ -1583,12 +1583,35 @@ def save_stats():
 @app.route("/")
 @app.route("/eng/")
 def index():
+    category = request.args.get(
+        "category",
+        ""
+    ).strip()
 
     conn = get_db()
+    
 
-    data = conn.execute(
-        "SELECT * FROM conversations ORDER BY id DESC"
-    ).fetchall()
+    if category:
+
+        data = conn.execute(
+            """
+            SELECT *
+            FROM conversations
+            WHERE category=?
+            ORDER BY id DESC
+            """,
+            (category,)
+        ).fetchall()
+
+    else:
+
+        data = conn.execute(
+            """
+            SELECT *
+            FROM conversations
+            ORDER BY id DESC
+            """
+        ).fetchall()
 
     conn.close()
     
