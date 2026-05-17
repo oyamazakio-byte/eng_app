@@ -7,7 +7,47 @@ margin-bottom:20px;">
 
 <form method="post" style="padding:10px;">
 
+<label style="font-size:32px;">カテゴリ</label><br>
+
+<select name="category"
+style="
+font-size:34px;
+width:100%;
+padding:22px;
+margin-bottom:25px;
+border-radius:10px;
+border:4px solid #333;
+background:white;
+">
+
+<option value="一般英語"
+{% if item.category == "一般英語" %}
+selected
+{% endif %}
+>
+📘 一般英語
+</option>
+
+<option value="ニュース英語"
+{% if item.category == "ニュース英語" %}
+selected
+{% endif %}
+>
+📰 ニュース英語
+</option>
+
+<option value="ロールプレイ"
+{% if item.category == "ロールプレイ" %}
+selected
+{% endif %}
+>
+🎭 ロールプレイ
+</option>
+
+</select>
+
 <label style="font-size:32px;">タイトル</label><br>
+
 <input name="title" value="{{ item.title }}"
 style="
 font-size:36px;
@@ -15,10 +55,11 @@ width:100%;
 padding:22px;
 margin-bottom:25px;
 border-radius:10px;
-border:4px solid #333;  /* ★ 太く */
+border:4px solid #333;
 "><br>
 
 <label style="font-size:32px;">英語 A</label><br>
+
 <input name="english_a" value="{{ item.english_a }}"
 style="
 font-size:36px;
@@ -30,6 +71,7 @@ border:4px solid #333;
 "><br>
 
 <label style="font-size:32px;">英語 B</label><br>
+
 <input name="english_b" value="{{ item.english_b }}"
 style="
 font-size:36px;

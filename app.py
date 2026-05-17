@@ -2091,6 +2091,7 @@ def add_multi():
             "title",
             ""
         ).strip()
+        
 
         lines_raw = request.form.get(
             "lines",
@@ -2146,10 +2147,17 @@ def add_multi():
 
         cur = conn.execute(
             """
-            INSERT INTO conversations (title)
-            VALUES (?)
+            INSERT INTO conversations
+            (
+                title,
+                category
+            )
+            VALUES (?, ?)
             """,
-            (title,)
+            (
+                title,
+                "一般英語"
+            )
         )
 
         conv_id = cur.lastrowid
@@ -2511,6 +2519,15 @@ def edit_conversation(id):
             "title",
             ""
         ).strip()
+        category = request.form.get(
+            "category",
+            "一般英語"
+        ).strip()
+
+        subcategory = request.form.get(
+            "subcategory",
+            ""
+        ).strip()
 
         lines_raw = request.form.get(
             "lines",
@@ -2521,11 +2538,12 @@ def edit_conversation(id):
         conn.execute(
             """
             UPDATE conversations
-            SET title=?
+            SET title=?, category=?, subcategory=?
             WHERE id=?
             """,
-            (title, id)
+            (title, category, subcategory, id)
         )
+        
 
         # 既存削除
         conn.execute(
@@ -2870,10 +2888,17 @@ def news_import():
 
     cur = conn.execute(
         """
-        INSERT INTO conversations (title)
-        VALUES (?)
+        INSERT INTO conversations
+        (
+            title,
+            category
+        )
+        VALUES (?, ?)
         """,
-        (conv_title,)
+        (
+            conv_title,
+            "ニュース英語"
+        )
     )
 
     conv_id = cur.lastrowid
@@ -2894,6 +2919,7 @@ def news_import():
         speaker = speakers[i]
 
         kana = to_katakana(text)
+
         kana_native = convert_native_kana(
             kana
         )
@@ -2934,6 +2960,7 @@ def news_import():
 
     conn.close()
 
+    
     return redirect(
         f"/eng/detail_multi/{conv_id}"
     )

@@ -31,6 +31,13 @@ button{
     margin-top:15px;
 }
 
+select{
+    width:100%;
+    font-size:20px;
+    padding:10px;
+    margin-bottom:20px;
+}
+
 </style>
 </head>
 
@@ -39,6 +46,90 @@ button{
 <h2>会話編集</h2>
 
 <form method="POST">
+
+<label style="font-size:24px;">
+カテゴリ
+</label>
+
+<br><br>
+
+<select name="category">
+
+<option value="一般英語"
+{% if conv.category == "一般英語" %}
+selected
+{% endif %}
+>
+📘 一般英語
+</option>
+
+<option value="ニュース英語"
+{% if conv.category == "ニュース英語" %}
+selected
+{% endif %}
+>
+📰 ニュース英語
+</option>
+
+<option value="ロールプレイ"
+{% if conv.category == "ロールプレイ" %}
+selected
+{% endif %}
+>
+🎭 ロールプレイ
+</option>
+
+</select>
+
+<label style="font-size:24px;">
+サブカテゴリ
+</label>
+
+<br><br>
+
+<select name="subcategory">
+
+<option value="A:B会話"
+{% if conv.subcategory == "A:B会話" %}
+selected
+{% endif %}
+>
+🎭 A:B会話
+</option>
+
+<option value="毎日1分!英字新聞"
+{% if conv.subcategory == "毎日1分!英字新聞" %}
+selected
+{% endif %}
+>
+📰 毎日1分!英字新聞
+</option>
+
+<option value="NHK WORLD"
+{% if conv.subcategory == "NHK WORLD" %}
+selected
+{% endif %}
+>
+📰 NHK WORLD
+</option>
+
+<option value="短文"
+{% if conv.subcategory == "短文" %}
+selected
+{% endif %}
+>
+📘 短文
+</option>
+
+<option value="長文"
+{% if conv.subcategory == "長文" %}
+selected
+{% endif %}
+>
+📘 長文
+</option>
+
+</select>
 
 <input
     type="text"
