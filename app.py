@@ -2173,18 +2173,19 @@ def add_multi():
             INSERT INTO conversations
             (
                 title,
-                category
+                category,
+                subcategory
             )
-            VALUES (?, ?)
+            VALUES (?, ?, ?)
             """,
             (
                 title,
-                "一般英語"
+                "ロールプレイ",
+                "A:B会話"
             )
         )
 
         conv_id = cur.lastrowid
-
         for i in range(len(texts)):
 
             text = texts[i]
@@ -2774,6 +2775,7 @@ def save_stats_route():
     save_stats()
 
     return redirect("/eng/")
+
 # -----------------------
 # ニュース英語
 # -----------------------
@@ -2783,7 +2785,12 @@ def news_add():
     return render_template(
         "news_add.html"
     )
+@app.route("/eng/general_add")
+def general_add():
 
+    return render_template(
+        "general_add.html"
+    )
 @app.route(
     "/eng/news_import",
     methods=["POST"]
@@ -2798,7 +2805,10 @@ def news_import():
         "conv_title",
         "ニュース英語"
     ).strip()
-
+    subcategory = request.form.get(
+        "subcategory",
+        "NHK WORLD"
+    ).strip()
     
     lines = []
 
@@ -2914,18 +2924,19 @@ def news_import():
         INSERT INTO conversations
         (
             title,
-            category
+            category,
+            subcategory
         )
-        VALUES (?, ?)
+        VALUES (?, ?, ?)
         """,
         (
             conv_title,
-            "ニュース英語"
+            "ニュース英語",
+            subcategory
         )
     )
 
     conv_id = cur.lastrowid
-
     for i in range(len(texts)):
 
         text = texts[i]
@@ -2987,7 +2998,113 @@ def news_import():
     return redirect(
         f"/eng/detail_multi/{conv_id}"
     )
+    
+@app.route(
+    "/eng/general_import",
+    methods=["POST"]
+)
 
+def general_import():
+
+    conv_title = request.form.get(
+        "conv_title",
+        "一般英語"
+    ).strip()
+
+    subcategory = request.form.get(
+        "subcategory",
+        "短文"
+    ).strip()
+
+    raw = request.form.get(
+        "english_text",
+        ""
+    ).strip()
+
+    if not raw:
+        return redirect("/eng/general_add")
+
+    texts = []
+
+    for line in raw.splitlines():
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        texts.append(line)
+
+    conn = get_db()
+
+    cur = conn.execute(
+        """
+        INSERT INTO conversations
+        (
+            title,
+            category,
+            subcategory
+        )
+        VALUES (?, ?, ?)
+        """,
+        (
+            conv_title,
+            "一般英語",
+            subcategory
+        )
+    )
+
+    conv_id = cur.lastrowid
+
+    speaker_toggle = "A"
+
+    for text in texts:
+
+        kana = to_katakana(text)
+
+        kana_native = convert_native_kana(
+            kana
+        )
+
+        japanese = translate(text)
+
+        conn.execute(
+            """
+            INSERT INTO messages
+            (
+                conversation_id,
+                speaker,
+                text,
+                japanese,
+                kana,
+                kana_native
+            )
+            VALUES
+            (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                conv_id,
+                speaker_toggle,
+                text,
+                japanese,
+                kana,
+                kana_native
+            )
+        )
+
+        speaker_toggle = (
+            "B"
+            if speaker_toggle == "A"
+            else "A"
+        )
+
+    conn.commit()
+
+    conn.close()
+
+    return redirect(
+        f"/eng/detail_multi/{conv_id}"
+    )
 print("TEST_USAGE_ROUTE_LOADED")
 # -----------------------
 # test_usage route
