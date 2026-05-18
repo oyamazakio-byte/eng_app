@@ -38,6 +38,17 @@ select{
     margin-bottom:20px;
 }
 
+.back-button{
+    font-size:20px;
+    padding:10px 20px;
+    margin-top:20px;
+    border:none;
+    border-radius:10px;
+    background:#777;
+    color:white;
+    cursor:pointer;
+}
+
 </style>
 </head>
 
@@ -153,7 +164,12 @@ selected
 
 <br>
 
-<a href="/eng/">← 一覧へ戻る</a>
+<button
+class="back-button"
+onclick="history.back()"
+>
+← 戻る
+</button>
 
 </body>
 </html>

@@ -1678,7 +1678,9 @@ def index():
   trans_hit_rate=(
       int(TRANS_CACHE_HIT / TRANS_TOTAL * 100)
       if TRANS_TOTAL else 0
-  )
+  ),
+
+  category=category
         
 )
 # -----------------------
@@ -2743,6 +2745,25 @@ def delete_conversation(id):
     conn = get_db()
     cur = conn.cursor()
 
+    # -----------------------
+    # 次に表示する会話取得
+    # -----------------------
+    next_row = cur.execute(
+        """
+        SELECT id
+        FROM conversations
+        WHERE id < ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (id,)
+    ).fetchone()
+
+    next_id = None
+
+    if next_row:
+        next_id = next_row["id"]
+
     cur.execute(
         """
         DELETE FROM messages
@@ -2761,6 +2782,15 @@ def delete_conversation(id):
 
     conn.commit()
     conn.close()
+
+    # -----------------------
+    # 次位置へ戻る
+    # -----------------------
+    if next_id:
+
+        return redirect(
+            f"/eng/#conv_{next_id}"
+        )
 
     return redirect("/eng")
 # -----------------------

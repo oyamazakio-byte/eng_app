@@ -20,6 +20,24 @@ font-family:sans-serif;
 background:#f5f5f5;
 ">
 
+<!-- ⬆ 検索へ戻る -->
+<a href="#search-top"
+style="
+position:fixed;
+top:20px;
+right:20px;
+z-index:9999;
+background:#FF9800;
+color:white;
+font-size:28px;
+padding:16px 22px;
+border-radius:14px;
+text-decoration:none;
+box-shadow:0 2px 10px rgba(0,0,0,0.3);
+">
+⬆ 検索へ
+</a>
+
 <h1 style="
 font-size:60px;
 text-align:center;
@@ -107,7 +125,8 @@ cursor:pointer;
 </form>
 
 <!-- 🔍 検索 -->
-<form method="get"
+<form id="search-top"
+method="get"
 action="/eng/"
 autocomplete="off"
 style="
@@ -157,10 +176,12 @@ flex-wrap:wrap;
 style="
 padding:14px 20px;
 font-size:28px;
-background:#757575;
+background:{% if category == '' %}#212121{% else %}#757575{% endif %};
 color:white;
 border-radius:12px;
 text-decoration:none;
+border:{% if category == '' %}4px solid #FFD54F{% else %}none{% endif %};
+transform:{% if category == '' %}scale(1.08){% else %}scale(1){% endif %};
 ">
 全部
 </a>
@@ -169,10 +190,12 @@ text-decoration:none;
 style="
 padding:14px 20px;
 font-size:28px;
-background:#4CAF50;
+background:{% if category == '一般英語' %}#1B5E20{% else %}#4CAF50{% endif %};
 color:white;
 border-radius:12px;
 text-decoration:none;
+border:{% if category == '一般英語' %}4px solid #FFD54F{% else %}none{% endif %};
+transform:{% if category == '一般英語' %}scale(1.08){% else %}scale(1){% endif %};
 ">
 📘 一般英語
 </a>
@@ -181,10 +204,12 @@ text-decoration:none;
 style="
 padding:14px 20px;
 font-size:28px;
-background:#2196F3;
+background:{% if category == 'ニュース英語' %}#0D47A1{% else %}#2196F3{% endif %};
 color:white;
 border-radius:12px;
 text-decoration:none;
+border:{% if category == 'ニュース英語' %}4px solid #FFD54F{% else %}none{% endif %};
+transform:{% if category == 'ニュース英語' %}scale(1.08){% else %}scale(1){% endif %};
 ">
 📰 ニュース英語
 </a>
@@ -193,10 +218,12 @@ text-decoration:none;
 style="
 padding:14px 20px;
 font-size:28px;
-background:#9C27B0;
+background:{% if category == 'ロールプレイ' %}#4A148C{% else %}#9C27B0{% endif %};
 color:white;
 border-radius:12px;
 text-decoration:none;
+border:{% if category == 'ロールプレイ' %}4px solid #FFD54F{% else %}none{% endif %};
+transform:{% if category == 'ロールプレイ' %}scale(1.08){% else %}scale(1){% endif %};
 ">
 🎭 ロールプレイ
 </a>
@@ -266,7 +293,8 @@ padding:0;
 
 {% for row in data %}
 
-<li style="
+<li id="conv_{{ row.id }}"
+style="
 margin-bottom:35px;
 padding:28px;
 border:3px solid #ddd;
@@ -380,7 +408,7 @@ method="post"
 style="flex:1;">
 
 <button type="submit"
-onclick="return confirm('削除しますか？');"
+onclick="return confirm('「{{ row.title }}」を削除しますか？');"
 style="
 font-size:32px;
 padding:25px;
