@@ -8,8 +8,6 @@
   "hi": "ハイ",
 
   "hello can i get a coffee": "ハロー キャナイ ゲラ コーヒー",
-  
-  
 
   "sure hot or iced": "シャー ハラァイスド",
   "hot or iced": "ハラァイスド",
@@ -24,7 +22,8 @@
   "yes a sandwich please": "イエスァ サンドイッチ プリーズ",
 
   "for here or to go": "フォーヒア オア トゥゴウ",
-   "that will be 450 yen": "ザット ウィル ビー フォーフィフティ イェン",
+
+  "that will be 450 yen": "ザット ウィル ビー フォーフィフティ イェン",
   "that will be 600 yen": "ザット ウィル ビー シックスハンドレッド イェン",
   "that will be 750 yen": "ザット ウィル ビー セブンフィフティ イェン",
   "that will be 999 yen": "ザット ウィル ビー ナインナインナイン イェン",
@@ -81,7 +80,9 @@
   "help me": "ヘルプ ミー",
   "call me later": "コール ミー レイター",
 
-  "what are you doing": "ワッ アーユー ドゥーイング",
+  "what are you doing": "ワラユ ドゥーイン",
+  "what are you": "ワラユ",
+
   "im studying english": "アイム スタディング イングリッシュ",
 
   "lets go": "レッツ ゴー",
@@ -91,6 +92,9 @@
   "just a second": "ジャス ア セカンド",
 
   "i dont know": "アイ ドント ノウ",
+  "i don't know": "アイドンノウ",
+  "don't know": "ドンノウ",
+
   "i think so": "アイ シンク ソウ",
 
   "are you ok": "アーユー オーケー",
@@ -104,25 +108,54 @@
 
   "lets start": "レッツ スタート",
   "lets finish": "レッツ フィニッシュ",
+
   "ok": "オーケー",
+  "great": "グレイト",
+
   "may i have your name please": "メイ アイ ハヴ ユア ネイム プリーズ",
-"my name is osamu": "マイ ネイム イズ オサム",
-"how many nights will you stay": "ハウ メニー ナイツ ウィル ユー ステイ",
-"two nights": "トゥー ナイツ",
-"great": "グレイト",
-"here is your room key": "ヒア イズ ユア ルーム キー",
-"from 7 to 10 am": "フロム セブン トゥ テン エーエム",
-"could you help me": "クッジュー ヘルプ ミー",
-"i am looking for": "アイム ルッキング フォー",
-"where can i find": "ウェア キャナイ ファインド",
-"can i get a coffee": "キャナイ ゲラ コーヒー",
-"is this seat taken": "イズ ディス シート テイケン",
-"excuse me is this seat taken": "イクスキューズ ミー イズ ディス シート テイケン",
-"for here": "フォーヒア",
-"to go": "トゥゴウ",
-"right this way": "ライト ディス ウェイ",
-"i am": "アイム",
-"you are": "ユア",
-"it is": "イッツ",
-"that is": "ザッツ"
+  "my name is osamu": "マイ ネイム イズ オサム",
+
+  "how many nights will you stay": "ハウ メニー ナイツ ウィル ユー ステイ",
+  "two nights": "トゥー ナイツ",
+
+  "here is your room key": "ヒア イズ ユア ルーム キー",
+  "from 7 to 10 am": "フロム セブン トゥ テン エーエム",
+
+  "could you help me": "クッジュー ヘルプ ミー",
+
+  "i am looking for": "アイム ルッキング フォー",
+  "where can i find": "ウェア キャナイ ファインド",
+
+  "can i get a coffee": "キャナイ ゲラ コーヒー",
+
+  "is this seat taken": "イズ ディス シート テイケン",
+  "excuse me is this seat taken": "イクスキューズ ミー イズ ディス シート テイケン",
+
+  "for here": "フォーヒア",
+  "to go": "トゥゴウ",
+
+  "right this way": "ライト ディス ウェイ",
+
+  "i am": "アイム",
+  "you are": "ユア",
+  "it is": "イッツ",
+  "that is": "ザッツ",
+
+  "going out": "ゴーインナウト",
+
+  "want a": "ワナ",
+
+  "got to": "ガラ",
+
+  "kind of": "カインダ",
+  "a lot of": "アララ",
+
+  "did you": "ディジュ",
+  "would you": "ウッジュー",
+  "could you": "クッジュー",
+
+  "do you want to": "ヂュワナ",
+
+  "give me": "ギミ",
+  "give me a": "ギミア"
 }

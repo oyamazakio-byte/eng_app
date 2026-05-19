@@ -12,6 +12,8 @@ from datetime import datetime
 
 USD_TO_JPY = 150
 
+practice_mode = "native"
+
 def split_news_sentences(text):
 
     # 改行をスペースへ
@@ -2199,8 +2201,11 @@ def add_multi():
 
             kana = to_katakana(text)
 
-            kana_native = convert_native_kana(kana)
-
+            if practice_mode == "native":
+                kana_native = convert_native_kana(kana)
+            else:
+                kana_native = kana
+            
             japanese = translate(text)
 
             issues, warnings = detect_ng(
@@ -2440,7 +2445,10 @@ def retranslate(id):
 
     kana = to_katakana(text)
 
-    kana_native = convert_native_kana(kana)
+    if practice_mode == "native":
+        kana_native = convert_native_kana(kana)
+    else:
+        kana_native = kana
 
     conn.execute("""
     UPDATE messages
@@ -2460,6 +2468,7 @@ def retranslate(id):
     conn.close()
 
     return {"status": "ok"}
+
 # -----------------------
 # 全件再変換
 # -----------------------
@@ -2505,8 +2514,11 @@ def retranslate_all():
 
             kana = to_katakana(text)
 
-            kana_native = convert_native_kana(kana)
-
+            if practice_mode == "native":
+                kana_native = convert_native_kana(kana)
+            else:
+                kana_native = kana
+ 
         except Exception as e:
 
             print(f"[KANA ERROR] {e}")
@@ -2550,6 +2562,7 @@ def edit_conversation(id):
             "title",
             ""
         ).strip()
+
         category = request.form.get(
             "category",
             "一般英語"
@@ -2574,7 +2587,6 @@ def edit_conversation(id):
             """,
             (title, category, subcategory, id)
         )
-        
 
         # 既存削除
         conn.execute(
@@ -2609,8 +2621,8 @@ def edit_conversation(id):
                     r"^B\d*:\s*",
                     "",
                     line
-          
                 )
+
             else:
 
                 speaker = speaker_toggle
@@ -2623,6 +2635,11 @@ def edit_conversation(id):
                 )
 
             kana = to_katakana(text)
+
+            if practice_mode == "native":
+                kana_native = convert_native_kana(kana)
+            else:
+                kana_native = kana
 
             japanese = translate(text)
 
@@ -2643,10 +2660,11 @@ def edit_conversation(id):
                 text,
                 japanese,
                 kana,
-                kana
+                kana_native
             ))
 
         conn.commit()
+
         conn.close()
 
         return redirect(
@@ -2691,6 +2709,7 @@ def edit_conversation(id):
         conv=conv,
         lines="\n".join(lines)
     )
+
 # -----------------------
 # お気に入り切替
 # -----------------------
@@ -2836,15 +2855,17 @@ def news_import():
         "news_text",
         ""
     )
+
     conv_title = request.form.get(
         "conv_title",
         "ニュース英語"
     ).strip()
+
     subcategory = request.form.get(
         "subcategory",
         "NHK WORLD"
     ).strip()
-    
+
     lines = []
 
     for line in raw.splitlines():
@@ -2972,6 +2993,7 @@ def news_import():
     )
 
     conv_id = cur.lastrowid
+
     for i in range(len(texts)):
 
         text = texts[i]
@@ -2989,9 +3011,10 @@ def news_import():
 
         kana = to_katakana(text)
 
-        kana_native = convert_native_kana(
-            kana
-        )
+        if practice_mode == "native":
+            kana_native = convert_native_kana(kana)
+        else:
+            kana_native = kana
 
         japanese = translate(text)
 
@@ -3029,11 +3052,9 @@ def news_import():
 
     conn.close()
 
-    
     return redirect(
         f"/eng/detail_multi/{conv_id}"
-    )
-    
+    )    
 @app.route(
     "/eng/general_import",
     methods=["POST"]
@@ -3097,12 +3118,12 @@ def general_import():
 
         kana = to_katakana(text)
 
-        kana_native = convert_native_kana(
-            kana
-        )
+        if practice_mode == "native":
+            kana_native = convert_native_kana(kana)
+        else:
+            kana_native = kana
 
         japanese = translate(text)
-
         conn.execute(
             """
             INSERT INTO messages
