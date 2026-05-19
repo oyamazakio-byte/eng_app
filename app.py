@@ -241,20 +241,20 @@ def normalize(text):
     text = text.replace("’", "'")
     text = text.replace("‘", "'")
     # contraction展開
-    text = text.replace("i'll", "i will")
-    text = text.replace("you're", "you are")
-    text = text.replace("we're", "we are")
-    text = text.replace("they're", "they are")
+    #text = text.replace("i'll", "i will")
+    #text = text.replace("you're", "you are")
+    #text = text.replace("we're", "we are")
+    #text = text.replace("they're", "they are")
 
-    text = text.replace("don't", "do not")
-    text = text.replace("doesn't", "does not")
-    text = text.replace("can't", "cannot")
-    text = text.replace("won't", "will not")
+    #text = text.replace("don't", "do not")
+    #text = text.replace("doesn't", "does not")
+    #text = text.replace("can't", "cannot")
+    #text = text.replace("won't", "will not")
 
-    text = text.replace("it's", "it is")
-    text = text.replace("that's", "that is")
+    #text = text.replace("it's", "it is")
+    #text = text.replace("that's", "that is")
 
-    text = text.replace("i'm", "i am")
+    #text = text.replace("i'm", "i am")
     text = text.replace("isn't", "is not")
     text = text.replace("aren't", "are not")
     text = text.replace("didn't", "did not")
@@ -814,6 +814,7 @@ def to_katakana(text):
         print(f"[KANA] PARTIAL: {norm}")
 
         return ai_sentence_katakana(converted)
+        
 
     # fallback
     if re.search(r"[a-z]", norm):
@@ -846,7 +847,11 @@ def convert_native_kana(text):
 
     result = text
 
-    for key, value in NATIVE_DICT.items():
+    for key, value in sorted(
+        NATIVE_DICT.items(),
+        key=lambda x: len(x[0]),
+        reverse=True
+    ):
 
         result = result.replace(
             key,
