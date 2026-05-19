@@ -442,13 +442,76 @@ background:#fff3e0;
 {{ m.text }}
 </div>
 
-<div class="kana"
+<div style="margin-top:10px;">
+
+<div
+id="kana-learning-{{ m.id }}"
+class="kana kana-learning"
 data-normal="{{ m.kana }}"
-data-native="{{ m.kana_native }}"
-style="font-size:40px;color:#555;margin-top:10px;">
+style="
+font-size:40px;
+color:#555;
+margin-top:10px;
+display:block;">
+
 {{ m.kana }}
+
 </div>
 
+<div
+id="kana-native-{{ m.id }}"
+class="kana kana-native"
+data-native="{{ m.kana_native }}"
+style="
+font-size:40px;
+color:#e91e63;
+margin-top:10px;
+display:none;">
+
+{{ m.kana_native }}
+
+</div>
+
+<div style="
+margin-top:8px;
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+">
+
+<button
+onclick="showLearning({{ m.id }})"
+style="
+font-size:18px;
+padding:6px 10px;
+background:#673ab7;
+color:white;
+border:none;
+border-radius:8px;
+white-space:nowrap;">
+
+🎓 学習
+
+</button>
+
+<button
+onclick="showNative({{ m.id }})"
+style="
+font-size:18px;
+padding:6px 10px;
+background:#e91e63;
+color:white;
+border:none;
+border-radius:8px;
+white-space:nowrap;">
+
+🗣 ネイティブ
+
+</button>
+
+</div>
+
+</div>
 <div class="jp"
 style="font-size:36px;color:#007bff;margin-top:10px;font-weight:bold;">
 {{ m.japanese }}
@@ -731,12 +794,22 @@ speechSynthesis.onvoiceschanged = loadVoices;
 window.onload = function() {
 
     lines = document.querySelectorAll(".line");
-    document.querySelectorAll(".kana").forEach(el=>{
+
+    document
+    .querySelectorAll(".kana-learning")
+    .forEach(el => {
 
         el.style.display = "none";
     });
-    loadVoices();
 
+    document
+    .querySelectorAll(".kana-native")
+    .forEach(el => {
+
+        el.style.display = "none";
+    });
+
+    loadVoices();
     const y = localStorage.getItem("scrollY");
 
     if (y !== null) {
@@ -916,12 +989,14 @@ function setVoiceB(type, btn){
     btn.style.color =
         "white";
 }
-
 function toggleMode(){
 
     nativeMode = !nativeMode;
 
-    const btn = document.getElementById("modeBtn");
+    const btn =
+        document.getElementById(
+            "modeBtn"
+        );
 
     if(nativeMode){
 
@@ -931,6 +1006,28 @@ function toggleMode(){
         btn.style.background =
             "#e91e63";
 
+        document
+        .querySelectorAll(
+            ".kana-learning"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                "none";
+        });
+
+        document
+        .querySelectorAll(
+            ".kana-native"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                kanaVisible
+                ? "block"
+                : "none";
+        });
+
     }else{
 
         btn.innerText =
@@ -938,37 +1035,83 @@ function toggleMode(){
 
         btn.style.background =
             "#673ab7";
+
+        document
+        .querySelectorAll(
+            ".kana-native"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                "none";
+        });
+
+        document
+        .querySelectorAll(
+            ".kana-learning"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                kanaVisible
+                ? "block"
+                : "none";
+        });
     }
-
-    document.querySelectorAll(".kana").forEach(el=>{
-
-        if(nativeMode){
-
-            el.innerText =
-                el.dataset.native ||
-                el.dataset.normal;
-
-        }else{
-
-            el.innerText =
-                el.dataset.normal;
-        }
-    });
 }
-
 function toggleKana(){
 
     kanaVisible = !kanaVisible;
 
-    document.querySelectorAll(".kana").forEach(el=>{
+    if(nativeMode){
 
-        el.style.display =
-            kanaVisible
-            ? "block"
-            : "none";
-    });
+        document
+        .querySelectorAll(
+            ".kana-native"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                kanaVisible
+                ? "block"
+                : "none";
+        });
+
+        document
+        .querySelectorAll(
+            ".kana-learning"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                "none";
+        });
+
+    }else{
+
+        document
+        .querySelectorAll(
+            ".kana-learning"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                kanaVisible
+                ? "block"
+                : "none";
+        });
+
+        document
+        .querySelectorAll(
+            ".kana-native"
+        )
+        .forEach(el => {
+
+            el.style.display =
+                "none";
+        });
+    }
 }
-
 function toggleJP(){
 
     jpVisible = !jpVisible;
@@ -1373,6 +1516,35 @@ function showMore(){
     document
     .getElementById("moreBtn")
     .style.display = "none";
+}
+function showLearning(id){
+
+    document.getElementById(
+        "kana-learning-" + id
+    ).style.display =
+        kanaVisible
+        ? "block"
+        : "none";
+
+    document.getElementById(
+        "kana-native-" + id
+    ).style.display =
+        "none";
+}
+
+function showNative(id){
+
+    document.getElementById(
+        "kana-learning-" + id
+    ).style.display =
+        "none";
+
+    document.getElementById(
+        "kana-native-" + id
+    ).style.display =
+        kanaVisible
+        ? "block"
+        : "none";
 }
 function toggleGrammar(id){
 

@@ -2275,7 +2275,10 @@ def detail_multi(id):
         """,
         (id,)
     ).fetchall()
-
+    practice_mode = request.args.get(
+        "mode",
+        "learning"
+    )
     conn.close()
 
     messages = []
@@ -2298,8 +2301,10 @@ def detail_multi(id):
     return render_template(
         "detail_multi.html",
         conv=conv,
-        messages=messages
+        messages=messages,
+        practice_mode=practice_mode
     )
+    
 # -----------------------
 # 例文お気に入り切替
 # -----------------------
