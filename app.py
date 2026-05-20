@@ -2705,16 +2705,23 @@ def edit_conversation(id):
 
     for r in rows:
 
-        lines.append(
-            f"{r['speaker']}: {r['text']}"
-        )
+        if r['speaker']:
+
+            lines.append(
+                f"{r['speaker']}: {r['text']}"
+            )
+
+        else:
+
+            lines.append(
+                r['text']
+            )
 
     return render_template(
         "edit_multi.html",
         conv=conv,
         lines="\n".join(lines)
     )
-
 # -----------------------
 # お気に入り切替
 # -----------------------
@@ -2930,16 +2937,24 @@ def news_import():
         # -----------------
         elif len(lines) >= 3:
 
-            title = (
-                lines[0]
-                + " "
-                + lines[1]
-            )
+            # 2行目が短い時だけタイトル結合
+            if len(lines[1]) <= 25:
 
-            raw_body = " ".join(lines[2:])
+                title = (
+                    lines[0]
+                    + " "
+                    + lines[1]
+                )
+
+                raw_body = " ".join(lines[2:])
+
+            else:
+
+                title = lines[0]
+
+                raw_body = " ".join(lines[1:])
 
             body = split_news_sentences(raw_body)
-
         # -----------------
         # 1行だけ
         # -----------------
@@ -2957,9 +2972,11 @@ def news_import():
             title
         )
 
+        # ニュースタイトル
         texts = [title]
 
-        speakers = ["A"]
+        # ニュースは話者なし
+        speakers = [""]
 
         for line in body.split("\n"):
 
@@ -2970,14 +2987,13 @@ def news_import():
 
             text = re.sub(
                 r"^B\d*:\s*",
-                "",
+                "", 
                 line
-            )
+            )  
 
             texts.append(text)
 
-            speakers.append("B")
-
+            speakers.append("")
     conn = get_db()
 
     cur = conn.execute(
@@ -3012,6 +3028,7 @@ def news_import():
                 text
             )
 
+        # 話者設定
         speaker = speakers[i]
 
         kana = to_katakana(text)
@@ -3167,6 +3184,17 @@ def general_import():
         f"/eng/detail_multi/{conv_id}"
     )
 print("TEST_USAGE_ROUTE_LOADED")
+
+# -----------------------
+# 管理画面
+# -----------------------
+@app.route("/eng/admin_menu")
+def admin_menu():
+
+    return render_template(
+        "admin_menu.html"
+    )
+    
 # -----------------------
 # test_usage route
 # -----------------------

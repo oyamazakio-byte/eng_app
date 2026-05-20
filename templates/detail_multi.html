@@ -436,7 +436,11 @@ background:#e3f2fd;
 background:#fff3e0;
 {% endif %}">
 
-<b style="font-size:30px;">{{ m.speaker }}:</b>
+{% if m.speaker %}
+<b style="font-size:30px;">
+{{ m.speaker }}:
+</b>
+{% endif %}
 
 <div style="font-size:40px;font-weight:bold;">
 {{ m.text }}
