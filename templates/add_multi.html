@@ -1,5 +1,5 @@
 <h1 style="font-size:60px;text-align:center;margin-bottom:30px;">
-📚 複数会話を追加
+📚 ロールプレイ追加
 </h1>
 
 <!-- ★ エラー表示 -->
@@ -16,7 +16,10 @@ text-align:center;">
 <form method="post" style="padding:10px;">
 
 <label style="font-size:36px;">タイトル</label><br>
-<input name="title" value="{{ title or '' }}"
+<input
+name="title"
+value="{{ title or '' }}"
+placeholder="例: 空港での会話"
 style="
 font-size:40px;
 width:100%;
@@ -28,7 +31,12 @@ border:4px solid #333;
 
 <label style="font-size:36px;">会話（A: / B:）</label><br>
 
-<textarea name="lines" rows="10"
+<textarea
+name="lines"
+rows="10"
+placeholder="A: Hello. Can I get a coffee?
+B: Sure. Hot or iced?
+A: Hot, please."
 style="
 font-size:36px;
 width:100%;
@@ -36,8 +44,8 @@ padding:22px;
 border-radius:12px;
 border:4px solid #333;
 line-height:1.6;
-">{{ lines or "A: Hello. Can I get a coffee?\nB: Sure. Hot or iced?\nA: Hot, please." }}</textarea>
-
+"
+>{{ lines or '' }}</textarea>
 <br><br>
 
 <button style="

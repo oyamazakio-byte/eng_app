@@ -1931,9 +1931,12 @@ def admin():
             UNKNOWN_WORDS.items(),
             key=lambda x: x[1],
             reverse=True
-        )[:30]
-    )
+        )[:30],
 
+        recent_words=get_recent_words(),
+        recent_katakana=get_recent_katakana(),
+        recent_translations=get_recent_translations()
+    )
 # -----------------------
 # API Usage ダッシュボード
 # -----------------------
@@ -3246,6 +3249,66 @@ def test_usage():
         <h2>Usage API Error</h2>
         <pre>{e}</pre>
         """
+# -----------------------
+# helper関数追加
+# -----------------------
+def get_recent_words(limit=30):
+    try:
+        path = "/home/bitnami/eng_app/dict/word_kana.json"
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        items = list(data.items())
+
+        recent = items[-limit:]
+
+        recent.reverse()
+
+        return recent
+
+    except Exception as e:
+        print("get_recent_words error:", e)
+        return []
+
+def get_recent_katakana(limit=10):
+    try:
+        path = "/home/bitnami/eng_app/dict/katakana_cache.json"
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        items = list(data.items())
+
+        recent = items[-limit:]
+
+        recent.reverse()
+
+        return recent
+
+    except Exception as e:
+        print("get_recent_katakana error:", e)
+        return []
+
+
+def get_recent_translations(limit=10):
+    try:
+        path = "/home/bitnami/eng_app/dict/translation_cache.json"
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        items = list(data.items())
+
+        recent = items[-limit:]
+
+        recent.reverse()
+
+        return recent
+
+    except Exception as e:
+        print("get_recent_translations error:", e)
+        return []
 # -----------------------
 # 起動
 # -----------------------

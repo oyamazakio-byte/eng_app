@@ -229,7 +229,193 @@ font-weight:bold;
 
 </div>
 
+<hr>
+
+<details>
+
+<summary style="
+font-size:28px;
+font-weight:bold;
+cursor:pointer;
+margin:15px 0;
+">
+📚 最近追加単語（word_kana.json）
+</summary>
+
+<div style="
+font-size:16px;
+line-height:1.8;
+background:#fff;
+padding:15px;
+border-radius:10px;
+margin-top:10px;
+">
+
+{% for word, kana in recent_words %}
+
+<div>
+
+<span style="
+color:red;
+font-weight:bold;
+margin-right:8px;
+">
+NEW
+</span>
+
+<b>{{ word }}</b>
+→
+{{ kana }}
+
 </div>
+
+{% endfor %}
+
+</div>
+
+</details>
+
+<hr>
+
+<details>
+
+<summary style="
+font-size:28px;
+font-weight:bold;
+cursor:pointer;
+margin:15px 0;
+">
+📚 最近カタカナ文（katakana_cache.json）
+</summary>
+
+<div style="
+font-size:14px;
+line-height:1.8;
+background:#fff;
+padding:15px;
+border-radius:10px;
+margin-top:10px;
+">
+
+{% for en, kana in recent_katakana %}
+
+<div style="
+margin-bottom:20px;
+border-left:6px solid #ff5252;
+padding-left:10px;
+">
+
+<div style="
+color:red;
+font-weight:bold;
+margin-bottom:4px;
+">
+NEW
+</div>
+
+<div style="
+font-weight:bold;
+color:#1565C0;
+">
+EN:
+</div>
+
+<div>
+{{ en }}
+</div>
+
+<div style="
+margin-top:5px;
+font-weight:bold;
+color:#00897B;
+">
+KANA:
+</div>
+
+<div>
+{{ kana }}
+</div>
+
+</div>
+
+<hr>
+
+{% endfor %}
+
+</div>
+
+</details>
+
+<hr>
+
+<details>
+
+<summary style="
+font-size:28px;
+font-weight:bold;
+cursor:pointer;
+margin:15px 0;
+">
+📚 最近翻訳文（translation_cache.json）
+</summary>
+
+<div style="
+font-size:14px;
+line-height:1.8;
+background:#fff;
+padding:15px;
+border-radius:10px;
+margin-top:10px;
+">
+
+{% for en, ja in recent_translations %}
+
+<div style="
+margin-bottom:20px;
+border-left:6px solid #42A5F5;
+padding-left:10px;
+">
+
+<div style="
+color:#1976D2;
+font-weight:bold;
+margin-bottom:4px;
+">
+NEW
+</div>
+
+<div style="
+font-weight:bold;
+color:#1565C0;
+">
+EN:
+</div>
+
+<div>
+{{ en }}
+</div>
+
+<div style="
+margin-top:5px;
+font-weight:bold;
+color:#2E7D32;
+">
+JA:
+</div>
+
+<div>
+{{ ja }}
+</div>
+
+</div>
+
+<hr>
+
+{% endfor %}
+
+</div>
+
+</details>
 
 {% if q %}
 
