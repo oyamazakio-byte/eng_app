@@ -100,14 +100,6 @@ selected
 
 <select name="subcategory">
 
-<option value="A:B会話"
-{% if conv.subcategory == "A:B会話" %}
-selected
-{% endif %}
->
-🎭 A:B会話
-</option>
-
 <option value="毎日1分!英字新聞"
 {% if conv.subcategory == "毎日1分!英字新聞" %}
 selected
@@ -122,6 +114,14 @@ selected
 {% endif %}
 >
 📰 NHK WORLD
+</option>
+
+<option value="MLBニュース"
+{% if conv.subcategory == "MLBニュース" %}
+selected
+{% endif %}
+>
+⚾ MLBニュース
 </option>
 
 <option value="短文"
@@ -143,10 +143,19 @@ selected
 </select>
 
 <input
-    type="text"
-    name="title"
-    value="{{ conv.title }}"
-    required
+type="text"
+name="title"
+value="{{ conv.title }}"
+placeholder="📁 タイトル"
+style="
+width:100%;
+font-size:28px;
+padding:16px;
+box-sizing:border-box;
+border:2px solid #333;
+border-radius:12px;
+font-weight:bold;
+"
 >
 
 <textarea

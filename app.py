@@ -3,6 +3,7 @@ import sqlite3
 import re
 import json
 import os
+import time
 import requests
 import glob
 from openai import OpenAI
@@ -1271,7 +1272,7 @@ def ai_translate(text):
     global AI_TRANS_COUNT
 
     AI_TRANS_COUNT += 1
-    
+
     key = normalize(text)
 
     # キャッシュ
@@ -1283,95 +1284,119 @@ def ai_translate(text):
 
         return TRANSLATION_CACHE[key]
 
-    try:
+    # -----------------------
+    # retry 最大3回
+    # -----------------------
+    for attempt in range(3):
 
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content":
-                    "Translate English to natural Japanese."
-                },
-                {
-                    "role": "user",
-                    "content": text
-                }
-            ],
-            temperature=0
-        )
-
-        usage = getattr(response, "usage", None)
-
-        if usage:
-
-            prompt_tokens = usage.prompt_tokens
-            completion_tokens = usage.completion_tokens
-
-            cost = (
-                prompt_tokens * 0.0000004 +
-                completion_tokens * 0.0000016
-            )
+        try:
 
             print(
-                f"[AI TRANS COST] "
-                f"prompt={prompt_tokens} "
-                f"completion={completion_tokens} "
-                f"cost=${cost:.8f}"
+                f"[AI TRY] {attempt + 1}/3 : {text}"
             )
 
-            conn = get_usage_db()
-
-            conn.execute(
-                """
-                INSERT INTO api_usage (
-                    created_at,
-                    model,
-                    prompt_tokens,
-                    completion_tokens,
-                    total_tokens,
-                    cost
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                    "gpt-4.1-mini",
-                    prompt_tokens,
-                    completion_tokens,
-                    usage.total_tokens,
-                    cost
-                )
+            response = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content":
+                        "Translate English to natural Japanese."
+                    },
+                    {
+                        "role": "user",
+                        "content": text
+                    }
+                ],
+                temperature=0
             )
 
-            conn.commit()
-            conn.close()
+            usage = getattr(
+                response,
+                "usage",
+                None
+            )
 
-        result = (
-            response
-            .choices[0]
-            .message
-            .content
-            .strip()
-        )
+            if usage:
 
-        print(f"[AI TRANS] {result}")
+                prompt_tokens = usage.prompt_tokens
+                completion_tokens = usage.completion_tokens
 
-        save_translation_cache(
-            text,
-            result
-        )
+                cost = (
+                    prompt_tokens * 0.0000004 +
+                    completion_tokens * 0.0000016
+                )
 
-        return result
+                print(
+                    f"[AI TRANS COST] "
+                    f"prompt={prompt_tokens} "
+                    f"completion={completion_tokens} "
+                    f"cost=${cost:.8f}"
+                )
 
-    except Exception as e:
+                conn = get_usage_db()
 
-        print(f"[AI ERROR] {e}")
+                conn.execute(
+                    """
+                    INSERT INTO api_usage (
+                        created_at,
+                        model,
+                        prompt_tokens,
+                        completion_tokens,
+                        total_tokens,
+                        cost
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        datetime.now().strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
+                        "gpt-4.1-mini",
+                        prompt_tokens,
+                        completion_tokens,
+                        usage.total_tokens,
+                        cost
+                    )
+                )
 
-        return text
+                conn.commit()
+                conn.close()
 
+            result = (
+                response
+                .choices[0]
+                .message
+                .content
+                .strip()
+            )
+
+            print(f"[AI TRANS] {result}")
+
+            save_translation_cache(
+                text,
+                result
+            )
+
+            return result
+
+        except Exception as e:
+
+            print(
+                f"[AI ERROR {attempt + 1}/3] {e}"
+            )
+
+            # 最終失敗
+            if attempt == 2:
+
+                print(
+                    "[AI FAILED] return original text"
+                )
+
+                return text
+
+            # retry待機
+            time.sleep(2)
 # -----------------------
 # 翻訳
 # -----------------------   
