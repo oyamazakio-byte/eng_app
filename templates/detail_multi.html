@@ -782,7 +782,53 @@ border-radius:12px;
 ▼ 続きを表示
 
 </button>
+<div id="globalLoading"
+style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(255,255,255,0.92);
+z-index:99999;
+text-align:center;
+padding-top:200px;
+">
 
+<div id="globalLoadingText"
+style="
+font-size:42px;
+font-weight:bold;
+color:#2196f3;
+margin-bottom:30px;
+">
+
+変換中 0%
+
+</div>
+
+<div style="
+width:80%;
+height:32px;
+background:#ddd;
+border-radius:16px;
+overflow:hidden;
+margin:0 auto;
+">
+
+<div id="globalProgressBar"
+style="
+width:0%;
+height:100%;
+background:#4CAF50;
+transition:width 0.5s;
+">
+</div>
+
+</div>
+
+</div>
 <hr>
 <button onclick="location.href='/eng/'"
 style="font-size:30px;padding:20px;width:100%;">
@@ -1356,6 +1402,10 @@ function retranslate(id){
         window.scrollY
     );
 
+    startGlobalProgress(
+        "再翻訳中"
+    );
+
     fetch(
         "/eng/retranslate/" + id,
         {
@@ -1649,4 +1699,73 @@ function toggleGrammar(id){
         }
     }
 }
+
+function startGlobalProgress(title="変換中"){
+
+    const loading =
+        document.getElementById(
+            "globalLoading"
+        );
+
+    const text =
+        document.getElementById(
+            "globalLoadingText"
+        );
+
+    const bar =
+        document.getElementById(
+            "globalProgressBar"
+        );
+
+    loading.style.display = "block";
+
+    let progress = 0;
+
+    const interval = setInterval(() => {
+
+        progress +=
+            Math.floor(Math.random()*7)+3;
+
+        if(progress >= 95){
+            progress = 95;
+        }
+
+        text.innerText =
+            title + " " + progress + "%";
+
+        bar.style.width =
+            progress + "%";
+
+    }, 700);
+
+ window.globalProgressInterval =
+    interval;
+}
+
+window.addEventListener(
+    "pageshow",
+    function(){
+
+        const loading =
+            document.getElementById(
+                "globalLoading"
+            );
+
+        if(loading){
+
+            loading.style.display =
+                "none";
+        }
+
+        if(
+            window.globalProgressInterval
+        ){
+
+            clearInterval(
+                window.globalProgressInterval
+            );
+        }
+    }
+);
+
 </script>

@@ -99,6 +99,44 @@ def load_json(path):
         print(f"[JSON ERROR] {path} -> {e}")
 
     return {}
+
+# -----------------------
+# 単語辞書 lazy load
+# -----------------------
+WORD_DICT_LOADED = False
+
+def load_word_dict():
+
+    global WORD_DICT_LOADED
+
+    if WORD_DICT_LOADED:
+
+        return
+
+    print("[WORD LOAD START]")
+
+    for path in sorted(
+        glob.glob(f"{DICT_DIR}/*word*.json")
+    ):
+
+        name = os.path.basename(path)
+
+        data = load_json(path)
+
+        WORD_KANA_DICT.update({
+            k.lower(): v
+            for k, v in data.items()
+        })
+
+        print(
+            f"[WORD LOAD] {name} : {len(data)}"
+        )
+
+    WORD_DICT_LOADED = True
+
+    print(
+        f"[WORD LOAD DONE] {len(WORD_KANA_DICT)}"
+    )
 # -----------------------
 # 辞書ロード
 # -----------------------
@@ -194,10 +232,7 @@ for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
     # 単語辞書
     elif "word" in name:
 
-        WORD_KANA_DICT.update({
-            k.lower(): v
-            for k, v in data.items()
-        })
+        print(f"[SKIP LOAD] {name}")
 
     # キャッシュは無視
     elif (
@@ -620,11 +655,13 @@ def tune_katakana(text):
 # -----------------------
 def dict_hit_rate(text):
 
+    load_word_dict()
+
     words = re.findall(
         r"[a-zA-Z]+",
         normalize(text)
     )
-
+    
     if not words:
 
         return 0
@@ -650,8 +687,10 @@ def dict_hit_rate(text):
 # -----------------------
 def fallback_word_katakana(text):
 
-    words = text.split()
+    load_word_dict()
 
+    words = text.split()
+    
     result = []
 
     for w in words:
