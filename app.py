@@ -81,7 +81,33 @@ STATS_PATH = (
     f"{DICT_DIR}/stats.json"
 )
 
+
+
 client = OpenAI()
+
+# -----------------------
+# AI PROMPTS
+# -----------------------
+
+SHORT_KANA_PROMPT = (
+    "Convert English word "
+    "to Japanese katakana only. "
+    "No explanation."
+)
+
+SHORT_SENTENCE_PROMPT = (
+    "Convert English to natural Japanese katakana pronunciation. "
+    "Read numbers naturally in English. "
+    "47,000 -> forty-seven thousand. "
+    "2025 -> twenty twenty-five. "
+    "92 -> ninety-two. "
+    "Use textbook pronunciation. "
+    "Katakana only."
+)
+SHORT_TRANSLATE_PROMPT = (
+    "Translate English to natural Japanese."
+)
+
 # -----------------------
 # JSON読み込み
 # -----------------------
@@ -121,7 +147,15 @@ def load_word_dict():
 
         name = os.path.basename(path)
 
-        data = load_json(path)
+        try:
+
+            with open(path, encoding="utf-8") as f:
+
+                data = json.load(f)
+
+        except:
+
+            data = {}
 
         WORD_KANA_DICT.update({
             k.lower(): v
@@ -153,7 +187,72 @@ UNKNOWN_WORDS = {}
 
 TRANS_CACHE_HIT = 0
 TRANS_TOTAL = 0
+# -----------------------
+# JSON辞書ロード
+# -----------------------
+for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
 
+    name = os.path.basename(path)
+
+    try:
+
+        with open(path, encoding="utf-8") as f:
+
+            data = json.load(f)
+
+    except Exception as e:
+
+        print(f"[DICT LOAD ERROR] {name} -> {e}")
+
+        data = {}
+
+    # fixed翻訳辞書
+    if "fixed_translate" in name:
+
+        TRANSLATE_DICT.update({
+            k.lower(): v
+            for k, v in data.items()
+        })
+
+    # 翻訳辞書
+    elif (
+        "translate" in name
+        and "translation_cache" not in name
+    ):
+
+        TRANSLATE_DICT.update({
+            k.lower(): v
+            for k, v in data.items()
+        })
+
+    # native辞書
+    elif "native" in name:
+
+        NATIVE_DICT.update({
+            k.lower(): v
+            for k, v in data.items()
+        })
+
+    # 単語辞書
+    elif "word" in name:
+
+        print(f"[SKIP LOAD] {name}")
+
+    # キャッシュ除外
+    elif (
+        "translation_cache" in name
+        or "katakana_cache" in name
+    ):
+
+        pass
+
+    # 発音辞書
+    else:
+
+        PHRASE_DICT.update({
+            k.lower(): v
+            for k, v in data.items()
+        })
 # -----------------------
 # 翻訳キャッシュ
 # -----------------------
@@ -194,62 +293,6 @@ except:
 
     KATAKANA_CACHE = {}
 
-for path in sorted(glob.glob(f"{DICT_DIR}/*.json")):
-
-    name = os.path.basename(path)
-
-    data = load_json(path)
-
-    print(f"[LOAD] {name} : {len(data)}")
-
-    # fixed翻訳辞書
-    if "fixed_translate" in name:
-
-        TRANSLATE_DICT.update({
-            k.lower(): v
-            for k, v in data.items()
-        })
-
-    # 翻訳辞書
-    elif (
-        "translate" in name
-        and "translation_cache" not in name
-    ):
-
-        TRANSLATE_DICT.update({
-            k.lower(): v
-            for k, v in data.items()
-        })
-
-    # native辞書
-    elif "native" in name:
-
-        NATIVE_DICT.update({
-            k.lower(): v
-            for k, v in data.items()
-        })
-
-    # 単語辞書
-    elif "word" in name:
-
-        print(f"[SKIP LOAD] {name}")
-
-    # キャッシュは無視
-    elif (
-        "translation_cache" in name
-        or "katakana_cache" in name
-    ):
-
-        pass
-
-    # それ以外は全部発音辞書
-    else:
-
-        PHRASE_DICT.update({
-            k.lower(): v
-            for k, v in data.items()
-       })
-
 # -----------------------
 # 汚染データ除去
 # -----------------------
@@ -262,13 +305,12 @@ for k in REMOVE_FROM_PHRASE:
         print(f"[REMOVE PHRASE POLLUTION] {k}")
 
         del PHRASE_DICT[k]
+
 print(f"[PHRASE] {len(PHRASE_DICT)}")
 print(f"[TRANS] {len(TRANSLATE_DICT)}")
 print(f"[WORD] {len(WORD_KANA_DICT)}")
-print(f"[NATIVE] {len(NATIVE_DICT)}")    
-    
+print(f"[NATIVE] {len(NATIVE_DICT)}")
 
-    
 # -----------------------
 # 正規化
 # -----------------------
@@ -695,8 +737,14 @@ def fallback_word_katakana(text):
 
     for w in words:
 
-        nw = normalize(w)
+        # 日本語はそのまま
+        if re.search(r"[ぁ-んァ-ヶ一-龯]", w):
 
+            result.append(w)
+
+            continue
+
+        nw = normalize(w)
         if nw in WORD_KANA_DICT:
 
             result.append(
@@ -855,8 +903,9 @@ def to_katakana(text):
 
         print(f"[KANA] PARTIAL: {norm}")
 
-        return ai_sentence_katakana(converted)
-        
+        return tune_katakana(
+            fallback_word_katakana(converted)
+        )
 
     # fallback
     if re.search(r"[a-z]", norm):
@@ -904,18 +953,31 @@ def convert_native_kana(text):
     print("[AFTER ]", result)
 
     return result
+
 # -----------------------
 # 単語辞書保存
 # -----------------------
 def save_word_kana(word, kana):
 
-    path = f"{DICT_DIR}/word_kana.json"
+    path = (
+        "/home/bitnami/eng_app/dict/word_kana.json"
+    )
 
     try:
 
-        with open(path, encoding="utf-8") as f:
+        if os.path.exists(path):
 
-            data = json.load(f)
+            with open(
+                path,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                data = json.load(f)
+
+        else:
+
+            data = {}
 
     except:
 
@@ -948,7 +1010,6 @@ def save_word_kana(word, kana):
 
         # メモリ辞書にも反映
         WORD_KANA_DICT[word] = kana
-
 # -----------------------
 # ネイティブ発音辞書
 # -----------------------
@@ -1046,12 +1107,7 @@ def ai_katakana(word):
             messages=[
                 {
                     "role": "system",
-                    "content":
-                    (
-                        "Convert English word "
-                        "to Japanese katakana only. "
-                        "No explanation."
-                    )
+                    "content": SHORT_KANA_PROMPT
                 },
                 {
                     "role": "user",
@@ -1149,6 +1205,82 @@ def ai_katakana(word):
         )
 
         return word.upper()
+
+# -----------------------
+# AIカタカナ batch
+# -----------------------
+def ai_katakana_batch(words):
+
+    try:
+
+        text = "\n".join(words)
+
+        response = client.chat.completions.create(
+
+            model="gpt-4.1-mini",
+
+            messages=[
+                {
+                    "role": "system",
+                    "content":
+                    (
+                        "Convert English words "
+                        "to Japanese katakana. "
+                        "Return one result per line. "
+                        "Katakana only."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": text
+                }
+            ],
+
+            temperature=0
+        )
+
+        result = (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+        lines = [
+            x.strip()
+            for x in result.splitlines()
+            if x.strip()
+        ]
+
+        mapping = {}
+
+        for word, kana in zip(words, lines):
+
+            kana = kana.strip()
+
+            mapping[word] = kana
+
+            print(
+                f"[BATCH KANA] "
+                f"{word} -> {kana}"
+            )
+
+            save_word_kana(
+                word,
+                kana
+            )
+
+        return mapping
+
+    except Exception as e:
+
+        print(
+            f"[BATCH ERROR] {e}"
+        )
+
+        return {}
+
 # -----------------------
 # AI文カタカナ
 # -----------------------
@@ -1161,37 +1293,201 @@ def ai_sentence_katakana(text):
 
     try:
 
+        # -----------------------
+        # 短文は辞書のみ
+        # -----------------------
+        words = re.findall(
+            r"[a-zA-Z]+",
+            normalize(text)
+        )
+
+        # -----------------------
+        # known率判定
+        # -----------------------
+        known_count = 0
+
+        for w in words:
+
+            if w.lower() in WORD_KANA_DICT:
+
+                known_count += 1
+
+        known_ratio = 0
+
+        if words:
+
+            known_ratio = (
+                known_count / len(words)
+            )
+
+        print(
+            f"[KNOWN RATIO] "
+            f"{known_count}/{len(words)} "
+            f"= {known_ratio:.2f}"
+        )
+
+        # -----------------------
+        # 短文は辞書のみ
+        # -----------------------
+        if len(words) <= 5:
+
+            # -----------------------
+            # 未知語抽出
+            # -----------------------
+            unknown_words = []
+
+            for w in words:
+
+                wl = w.lower()
+
+                if wl not in WORD_KANA_DICT:
+
+                    unknown_words.append(wl)
+
+            # 重複除去
+            unknown_words = list(set(unknown_words))
+
+            # -----------------------
+            # 未知語まとめAI変換
+            # -----------------------
+            batch_result = {}
+
+            if unknown_words:
+
+                print(
+                    f"[BATCH REQUEST] "
+                    f"{len(unknown_words)} words"
+                )
+
+                batch_result = ai_katakana_batch(
+                    unknown_words
+                )
+
+            # -----------------------
+            # kana_list生成
+            # -----------------------
+            kana_list = []
+
+            for w in words:
+
+                wl = w.lower()
+
+                if wl in WORD_KANA_DICT:
+
+                    kana_list.append(
+                        WORD_KANA_DICT[wl]
+                    )
+
+                else:
+
+                    kana_list.append(
+                        batch_result.get(
+                            wl,
+                            w.upper()
+                        )
+                    )
+
+            result = " ".join(kana_list)
+
+            print(
+                f"[SHORT KANA] "
+                f"{text} -> {result}"
+            )
+
+            save_katakana_cache(
+                text,
+                result
+            )
+
+            return result
+
+        # -----------------------
+        # 辞書生成モード
+        # -----------------------
+        if known_ratio >= 0.75:
+
+            # -----------------------
+            # 未知語抽出
+            # -----------------------
+            unknown_words = []
+
+            for w in words:
+
+                wl = w.lower()
+
+                if wl not in WORD_KANA_DICT:
+
+                    unknown_words.append(wl)
+
+            # 重複除去
+            unknown_words = list(set(unknown_words))
+
+            # -----------------------
+            # 未知語まとめAI変換
+            # -----------------------
+            batch_result = {}
+
+            if unknown_words:
+
+                print(
+                    f"[BATCH REQUEST] "
+                    f"{len(unknown_words)} words"
+                )
+
+                batch_result = ai_katakana_batch(
+                    unknown_words
+                )
+
+            # -----------------------
+            # kana_list生成
+            # -----------------------
+            kana_list = []
+
+            for w in words:
+
+                wl = w.lower()
+
+                if wl in WORD_KANA_DICT:
+
+                    kana_list.append(
+                        WORD_KANA_DICT[wl]
+                    )
+
+                else:
+
+                    kana_list.append(
+                        batch_result.get(
+                            wl,
+                            w.upper()
+                        )
+                    )
+
+            result = " ".join(kana_list)
+
+            print(
+                f"[DICT KANA] "
+                f"{text} -> {result}"
+            )
+
+            result = tune_katakana(result)
+
+            save_katakana_cache(
+                text,
+                result
+            )
+
+            return result
+
         response = client.chat.completions.create(
 
             model="gpt-4.1-mini",
-
+            
             messages=[
 
                 {
                     "role": "system",
-
-                    "content":
-                    (
-                        "Convert English sentence "
-                        "to Japanese katakana pronunciation "
-                        "for learners. "
-
-                        "Use clear textbook-style pronunciation. "
-
-                        "Do NOT use overly native pronunciation. "
-
-                        "For example: "
-
-                        "'do you' -> 'ドゥ ユー', "
-
-                        "'want to' -> 'ウォント トゥ', "
-
-                        "'have to' -> 'ハヴ トゥ'. "
-
-                        "Output katakana only."
-                    )
+                    "content": SHORT_SENTENCE_PROMPT
                 },
-
                 {
                     "role": "user",
                     "content": text
@@ -1199,8 +1495,9 @@ def ai_sentence_katakana(text):
 
             ],
 
-        temperature=0
+            temperature=0
         )
+
         usage = getattr(response, "usage", None)
 
         if usage:
@@ -1269,11 +1566,70 @@ def ai_sentence_katakana(text):
             f"[AI SENTENCE KANA] "
             f"{text} -> {result}"
         )
-
-        words = re.findall(
-            r"[a-zA-Z]+",
+        
+        # -----------------------
+        # AI全文から自動辞書学習
+        # -----------------------
+        eng_words = re.findall(
+            r"\b[a-zA-Z0-9]+(?:[-'][a-zA-Z0-9]+)*\b",
             normalize(text)
         )
+
+        kana_words = [
+            k.strip()
+            for k in result.split()
+            if re.fullmatch(
+                r"[ァ-ヶー0-9,\.]+",
+                k.strip()
+            )
+        ]
+        print(
+            f"[AUTO LEARN CHECK] "
+            f"eng={len(eng_words)} "
+            f"kana={len(kana_words)}"
+        )
+
+        # 語数一致時のみ学習
+        if len(eng_words) == len(kana_words):
+
+            for ew, kw in zip(
+                eng_words,
+                kana_words
+            ):
+
+                ew = ew.lower()
+
+                # 未登録のみ
+                if ew not in WORD_KANA_DICT:
+
+                    # カタカナっぽい場合のみ
+                    if re.fullmatch(
+                        r"[ァ-ヶー]+",
+                        kw
+                    ):
+
+                        print(
+                            f"[AUTO LEARN] "
+                            f"{ew} -> {kw}"
+                        )
+
+                        save_word_kana(
+                            ew,
+                            kw
+                       )
+        else:
+
+            print(
+                "[AUTO LEARN SKIP] "
+                "word count mismatch"
+            )
+
+        words = re.findall(
+            r"\b[a-zA-Z0-9]+(?:[-'][a-zA-Z0-9]+)*\b",
+            normalize(text)
+        )
+
+        unknown_words = []
 
         for w in words:
 
@@ -1286,7 +1642,18 @@ def ai_sentence_katakana(text):
                 )
 
                 print(f"[UNKNOWN WORD] {w}")
-                ai_katakana(w)
+
+                unknown_words.append(w)
+
+        # -----------------------
+        # batch変換
+        # -----------------------
+        if unknown_words:
+
+            ai_katakana_batch(
+                list(set(unknown_words))
+            )
+
         result = tune_katakana(result)
         
         save_katakana_cache(
@@ -1340,7 +1707,7 @@ def ai_translate(text):
                     {
                         "role": "system",
                         "content":
-                        "Translate English to natural Japanese."
+                        SHORT_TRANSLATE_PROMPT
                     },
                     {
                         "role": "user",
@@ -3034,9 +3401,10 @@ def news_import():
         # "7 hours ago"除去
         # -----------------
         title = re.sub(
-            r"\s+\d+\s+(hour|hours|day|days)\s+ago$",
+            r"\s+\d+\s+(min|mins|minute|minutes|hour|hours|day|days)\s+ago$",
             "",
-            title
+            title,
+            flags=re.IGNORECASE
         )
 
         # ニュースタイトル
