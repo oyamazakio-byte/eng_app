@@ -5,7 +5,7 @@
 
 <meta charset="UTF-8">
 
-<title>WORD辞書</title>
+<title>{{ title }}</title>
 
 <style>
 
@@ -83,7 +83,7 @@ a{
 
 <div class="back-fixed">
 
-<a href="/eng/">
+<a href="/eng/dict_admin">
 
 ← 辞書管理へ戻る
 
@@ -95,7 +95,7 @@ a{
 
 {% if page > 1 %}
 
-<a href="/eng/dict?page={{ page - 1 }}&q={{ q }}">
+<a href="/eng/dict/{{ dict_type }}?page={{ page - 1 }}&q={{ q }}">
 
 ← 前へ
 
@@ -111,7 +111,7 @@ Page {{ page }} / {{ total_pages }}
 
 {% if page < total_pages %}
 
-<a href="/eng/dict?page={{ page + 1 }}&q={{ q }}">
+<a href="/eng/dict/{{ dict_type }}?page={{ page + 1 }}&q={{ q }}">
 
 次へ →
 
@@ -121,11 +121,11 @@ Page {{ page }} / {{ total_pages }}
 
 </div>
 
-<h1>WORD辞書</h1>
+<h1>{{ title }}</h1>
 
 <p>
 
-<a href="/eng/dict_add">
+<a href="/eng/dict_add/{{ dict_type }}">
 
 ＋ 新規追加
 
@@ -165,7 +165,7 @@ Page {{ page }} / {{ total_pages }}
 <tr>
 
 <th>KEY</th>
-<th>KANA</th>
+<th>VALUE</th>
 <th>EDIT</th>
 <th>DELETE</th>
 
@@ -181,7 +181,7 @@ Page {{ page }} / {{ total_pages }}
 
 <td>
 
-<a href="/eng/dict_edit/{{ k }}">
+<a href="/eng/dict_edit/{{ dict_type }}/{{ k }}">
 
 編集
 
@@ -193,7 +193,7 @@ Page {{ page }} / {{ total_pages }}
 
 <form
     method="post"
-    action="/eng/dict_delete/{{ k }}"
+    action="/eng/dict_delete/{{ dict_type }}/{{ k }}"
     onsubmit="return confirm('削除しますか？');"
 >
 

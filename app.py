@@ -331,6 +331,36 @@ print(f"[WORD] {len(WORD_KANA_DICT)}")
 print(f"[NATIVE] {len(NATIVE_DICT)}")
 
 # -----------------------
+# 辞書設定
+# -----------------------
+DICT_CONFIG = {
+
+    "word": {
+        "title": "WORD辞書",
+        "dict": WORD_KANA_DICT,
+        "path": f"{DICT_DIR}/word_kana.json"
+    },
+
+    "phrase": {
+        "title": "PHRASE辞書",
+        "dict": PHRASE_DICT,
+        "path": f"{DICT_DIR}/phrase.json"
+    },
+
+    "native": {
+        "title": "NATIVE辞書",
+        "dict": NATIVE_DICT,
+        "path": f"{DICT_DIR}/00_native.json"
+    },
+
+    "translate": {
+        "title": "TRANSLATE辞書",
+        "dict": TRANSLATE_DICT,
+        "path": f"{DICT_DIR}/translate.json"
+    }
+}
+
+# -----------------------
 # 辞書監査ログ
 # -----------------------
 
@@ -2283,12 +2313,24 @@ def unknown_words():
         items=items[:300]
     )    
 # -----------------------
-# WORD辞書一覧
+# WORD辞書覧
 # -----------------------
-@app.route("/eng/dict")
-def dict_list():
+@app.route("/eng/dict/<dict_type>")
+def dict_list(dict_type):
+        
+    if dict_type not in DICT_CONFIG:
 
-    load_word_dict()
+        return "DICT TYPE ERROR"
+
+    config = DICT_CONFIG[dict_type]
+
+    TARGET_DICT = config["dict"]
+
+    title = config["title"]
+
+    if dict_type == "word":
+
+        load_word_dict()
 
     q = request.args.get(
         "q",
@@ -2308,7 +2350,7 @@ def dict_list():
 
         items = sorted([
             (k, v)
-            for k, v in WORD_KANA_DICT.items()
+            for k, v in TARGET_DICT.items()
             if q in k
             or q in v
         ])
@@ -2318,7 +2360,7 @@ def dict_list():
     else:
 
         all_items = sorted(
-            WORD_KANA_DICT.items()
+            TARGET_DICT.items()
         )
 
         start = (
@@ -2340,7 +2382,9 @@ def dict_list():
         items=items,
         q=q,
         page=page,
-        total_pages=total_pages
+        total_pages=total_pages,
+        title=title,
+        dict_type=dict_type
     )
 
 # -----------------------
@@ -2386,13 +2430,27 @@ def dict_audit():
 # WORD辞書編集
 # -----------------------
 @app.route(
-    "/eng/dict_edit/<key>",
+    "/eng/dict_edit/<dict_type>/<key>",
     methods=["GET", "POST"]
 )
 
-def dict_edit(key):
+def dict_edit(dict_type, key):
 
-    load_word_dict()
+    if dict_type not in DICT_CONFIG:
+
+        return "DICT TYPE ERROR"
+
+    config = DICT_CONFIG[dict_type]
+
+    TARGET_DICT = config["dict"]
+
+    TARGET_PATH = config["path"]
+
+    title = config["title"]
+
+    if dict_type == "word":
+
+        load_word_dict()
 
     key = key.lower()
 
@@ -2403,19 +2461,19 @@ def dict_edit(key):
             ""
         ).strip()
 
-        old_value = WORD_KANA_DICT.get(key, "")
+        old_value = TARGET_DICT.get(key, "")
 
-        WORD_KANA_DICT[key] = kana
+        TARGET_DICT[key] = kana
 
         # JSON保存
         with open(
-            f"{DICT_DIR}/word_kana.json",
+            TARGET_PATH,
             "w",
             encoding="utf-8"
         ) as f:
 
             json.dump(
-                WORD_KANA_DICT,
+                TARGET_DICT,
                 f,
                 ensure_ascii=False,
                 indent=2
@@ -2424,32 +2482,49 @@ def dict_edit(key):
         # 監査ログ
         write_dict_audit_log(
             action="edit",
-            dict_type="word",
+            dict_type=dict_type,
             key=key,
             old_value=old_value,
             new_value=kana
         )
 
-        return redirect("/eng/dict")
+        return redirect(
+            f"/eng/dict/{dict_type}"
+        )
 
-    kana = WORD_KANA_DICT.get(key, "")
+    kana = TARGET_DICT.get(key, "")
 
     return render_template(
         "dict_edit.html",
         key=key,
-        kana=kana
+        kana=kana,
+        title=title,
+        dict_type=dict_type
     )    
 # -----------------------
 # WORD辞書追加
 # -----------------------
 @app.route(
-    "/eng/dict_add",
+    "/eng/dict_add/<dict_type>",
     methods=["GET", "POST"]
 )
 
-def dict_add():
+def dict_add(dict_type):
+    if dict_type not in DICT_CONFIG:
 
-    load_word_dict()
+        return "DICT TYPE ERROR"
+
+    config = DICT_CONFIG[dict_type]
+
+    TARGET_DICT = config["dict"]
+
+    TARGET_PATH = config["path"]
+
+    title = config["title"]
+
+    if dict_type == "word":
+
+        load_word_dict()
 
     error = ""
 
@@ -2469,22 +2544,22 @@ def dict_add():
 
             error = "KEYが空です"
 
-        elif key in WORD_KANA_DICT:
+        elif key in TARGET_DICT:
 
             error = "既に存在します"
 
         else:
 
-            WORD_KANA_DICT[key] = kana
+            TARGET_DICT[key] = kana
 
             with open(
-                f"{DICT_DIR}/word_kana.json",
+                TARGET_PATH,
                 "w",
                 encoding="utf-8"
             ) as f:
 
                 json.dump(
-                    WORD_KANA_DICT,
+                    TARGET_DICT,
                     f,
                     ensure_ascii=False,
                     indent=2
@@ -2492,45 +2567,58 @@ def dict_add():
 
             write_dict_audit_log(
                 action="add",
-                dict_type="word",
+                dict_type=dict_type,
                 key=key,
                 new_value=kana
             )
 
-            return redirect("/eng/dict")
+            return redirect(f"/eng/dict/{dict_type}")
 
     return render_template(
         "dict_add.html",
-        error=error
+        error=error,
+        title=title,
+    dict_type=dict_type
     )
 # -----------------------
 # WORD辞書削除
 # -----------------------
 @app.route(
-    "/eng/dict_delete/<key>",
+    "/eng/dict_delete/<dict_type>/<key>",
     methods=["POST"]
 )
+def dict_delete(dict_type, key):
 
-def dict_delete(key):
+    if dict_type not in DICT_CONFIG:
 
-    load_word_dict()
+        return "DICT TYPE ERROR"
+
+    config = DICT_CONFIG[dict_type]
+
+    TARGET_DICT = config["dict"]
+
+    TARGET_PATH = config["path"]
+
+    if dict_type == "word":
+
+        load_word_dict()
 
     key = key.lower()
 
-    if key in WORD_KANA_DICT:
+    if key in TARGET_DICT:
 
-        old_value = WORD_KANA_DICT[key]
+        old_value = TARGET_DICT[key]
 
-        del WORD_KANA_DICT[key]
+        del TARGET_DICT[key]
 
         with open(
-            f"{DICT_DIR}/word_kana.json",
+            TARGET_PATH,
             "w",
             encoding="utf-8"
         ) as f:
 
             json.dump(
-                WORD_KANA_DICT,
+                TARGET_DICT,
                 f,
                 ensure_ascii=False,
                 indent=2
@@ -2538,12 +2626,12 @@ def dict_delete(key):
 
         write_dict_audit_log(
             action="delete",
-            dict_type="word",
+            dict_type=dict_type,
             key=key,
             old_value=old_value
         )
 
-    return redirect("/eng/dict")  
+    return redirect(f"/eng/dict/{dict_type}")  
      
 # -----------------------
 # 管理画面

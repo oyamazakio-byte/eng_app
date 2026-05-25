@@ -5,7 +5,7 @@
 
 <meta charset="UTF-8">
 
-<title>WORD辞書追加</title>
+<title>{{ title }} 追加</title>
 
 <style>
 
@@ -41,7 +41,7 @@ button{
 
 <body>
 
-<h1>WORD辞書追加</h1>
+<h1>{{ title }} 追加</h1>
 
 {% if error %}
 
@@ -70,7 +70,7 @@ button{
 <input
     type="text"
     name="kana"
-    placeholder="KANA"
+    placeholder="VALUE"
 >
 
 </p>
@@ -85,7 +85,7 @@ button{
 
 <div class="back">
 
-<a href="/eng/dict">
+<a href="/eng/dict/{{ dict_type }}">
 
 ← 戻る
 
