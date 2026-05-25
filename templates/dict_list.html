@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>WORD辞書</title>
+
+<style>
+
+body{
+    font-family:sans-serif;
+    padding:20px;
+}
+
+table{
+    border-collapse:collapse;
+    width:100%;
+}
+
+th,td{
+    border:1px solid #999;
+    padding:8px;
+    text-align:left;
+}
+
+th{
+    background:#f0f0f0;
+}
+
+a{
+    text-decoration:none;
+    color:blue;
+}
+
+.search-box{
+    margin-bottom:20px;
+}
+
+.search-box input{
+    font-size:18px;
+    width:240px;
+    padding:6px;
+}
+
+.search-box button{
+    font-size:18px;
+    padding:6px 14px;
+}
+
+.pager-fixed{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:white;
+    border:1px solid #ccc;
+    padding:10px 14px;
+    border-radius:8px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+    font-size:18px;
+    z-index:9999;
+}
+
+.back-fixed{
+    position:fixed;
+    top:20px;
+    left:20px;
+    background:white;
+    border:1px solid #ccc;
+    padding:10px 14px;
+    border-radius:8px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+    font-size:18px;
+    z-index:9999;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="back-fixed">
+
+<a href="/eng/">
+
+← 辞書管理へ戻る
+
+</a>
+
+</div>
+
+<div class="pager-fixed">
+
+{% if page > 1 %}
+
+<a href="/eng/dict?page={{ page - 1 }}&q={{ q }}">
+
+← 前へ
+
+</a>
+
+{% endif %}
+
+<span style="margin:0 12px;">
+
+Page {{ page }} / {{ total_pages }}
+
+</span>
+
+{% if page < total_pages %}
+
+<a href="/eng/dict?page={{ page + 1 }}&q={{ q }}">
+
+次へ →
+
+</a>
+
+{% endif %}
+
+</div>
+
+<h1>WORD辞書</h1>
+
+<p>
+
+<a href="/eng/dict_add">
+
+＋ 新規追加
+
+</a>
+
+</p>
+
+<div class="search-box">
+
+<form method="get">
+
+<input
+    type="text"
+    name="q"
+    value="{{ q }}"
+    placeholder="検索"
+>
+
+<button type="submit">
+
+検索
+
+</button>
+
+</form>
+
+</div>
+
+<p>
+
+件数: {{ items|length }}
+
+</p>
+
+<table>
+
+<tr>
+
+<th>KEY</th>
+<th>KANA</th>
+<th>EDIT</th>
+<th>DELETE</th>
+
+</tr>
+
+{% for k,v in items %}
+
+<tr>
+
+<td>{{ k }}</td>
+
+<td>{{ v }}</td>
+
+<td>
+
+<a href="/eng/dict_edit/{{ k }}">
+
+編集
+
+</a>
+
+</td>
+
+<td>
+
+<form
+    method="post"
+    action="/eng/dict_delete/{{ k }}"
+    onsubmit="return confirm('削除しますか？');"
+>
+
+<button type="submit">
+
+削除
+
+</button>
+
+</form>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</body>
+</html>

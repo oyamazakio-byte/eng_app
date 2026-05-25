@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>未知語一覧</title>
+
+<style>
+
+body{
+    font-family:sans-serif;
+    padding:20px;
+}
+
+table{
+    border-collapse:collapse;
+    width:100%;
+}
+
+th,td{
+    border:1px solid #999;
+    padding:8px;
+    text-align:left;
+}
+
+th{
+    background:#f0f0f0;
+}
+
+a{
+    text-decoration:none;
+    color:blue;
+}
+
+.topbar{
+    margin-bottom:20px;
+}
+
+.count{
+    margin-bottom:20px;
+    font-size:18px;
+}
+
+.rank{
+    width:80px;
+}
+
+.word{
+    width:300px;
+}
+
+.freq{
+    width:120px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="topbar">
+
+<a href="/eng/dict_admin">
+
+← 辞書管理へ戻る
+
+</a>
+
+</div>
+
+<h1>未知語一覧</h1>
+
+<div class="count">
+
+件数: {{ items|length }}
+
+</div>
+
+<table>
+
+<tr>
+
+<th class="rank">順位</th>
+<th class="word">WORD</th>
+<th class="freq">回数</th>
+
+</tr>
+
+{% for word,count in items %}
+
+<tr>
+
+<td>
+
+{{ loop.index }}
+
+</td>
+
+<td>
+
+{{ word }}
+
+</td>
+
+<td>
+
+{{ count }}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</body>
+
+</html>

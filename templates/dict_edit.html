@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>WORD辞書編集</title>
+
+<style>
+
+body{
+    font-family:sans-serif;
+    padding:20px;
+}
+
+input{
+    font-size:20px;
+    padding:8px;
+    width:320px;
+}
+
+button{
+    font-size:20px;
+    padding:8px 18px;
+    margin-top:20px;
+}
+
+.back{
+    margin-top:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>WORD辞書編集</h1>
+
+<p>
+
+<b>KEY:</b>
+
+{{ key }}
+
+</p>
+
+<form method="post">
+
+<p>
+
+<input
+    type="text"
+    name="kana"
+    value="{{ kana }}"
+>
+
+</p>
+
+<button type="submit">
+
+保存
+
+</button>
+
+</form>
+
+<div class="back">
+
+<a href="/eng/dict">
+
+← 戻る
+
+</a>
+
+</div>
+
+</body>
+</html>

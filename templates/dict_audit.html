@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>辞書監査ログ</title>
+
+<style>
+
+body{
+    font-family:sans-serif;
+    padding:20px;
+}
+
+table{
+    border-collapse:collapse;
+    width:100%;
+}
+
+th,td{
+    border:1px solid #999;
+    padding:8px;
+    text-align:left;
+    vertical-align:top;
+}
+
+th{
+    background:#f0f0f0;
+}
+
+a{
+    text-decoration:none;
+    color:blue;
+}
+
+.topbar{
+    margin-bottom:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="topbar">
+
+<a href="/eng/dict_admin">
+
+← 辞書管理へ戻る
+
+</a>
+
+</div>
+
+<h1>辞書監査ログ</h1>
+
+<p>
+
+最新300件を表示
+
+</p>
+
+<table>
+
+<tr>
+
+<th>TIME</th>
+<th>ACTION</th>
+<th>TYPE</th>
+<th>KEY</th>
+<th>OLD</th>
+<th>NEW</th>
+<th>SOURCE</th>
+
+</tr>
+
+{% for row in logs %}
+
+<tr>
+
+<td>{{ row.time }}</td>
+
+<td>{{ row.action }}</td>
+
+<td>{{ row.dict_type }}</td>
+
+<td>{{ row.key }}</td>
+
+<td>{{ row.old_value }}</td>
+
+<td>{{ row.new_value }}</td>
+
+<td>{{ row.source }}</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</body>
+
+</html>

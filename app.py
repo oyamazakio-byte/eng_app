@@ -80,7 +80,27 @@ DICT_DIR = "/home/bitnami/eng_app/dict"
 STATS_PATH = (
     f"{DICT_DIR}/stats.json"
 )
+UNKNOWN_WORDS_PATH = (
+    f"{DICT_DIR}/unknown_words.json"
+)
 
+os.makedirs(
+    os.path.dirname(UNKNOWN_WORDS_PATH),
+    exist_ok=True
+)
+
+try:
+
+    with open(
+        UNKNOWN_WORDS_PATH,
+        encoding="utf-8"
+    ) as f:
+
+        UNKNOWN_WORDS = json.load(f)
+
+except:
+
+    UNKNOWN_WORDS = {}
 
 
 client = OpenAI()
@@ -183,7 +203,6 @@ AI_TRANS_COUNT = 0
 
 KANA_CACHE_HIT = 0
 KANA_TOTAL = 0
-UNKNOWN_WORDS = {}
 
 TRANS_CACHE_HIT = 0
 TRANS_TOTAL = 0
@@ -311,6 +330,62 @@ print(f"[TRANS] {len(TRANSLATE_DICT)}")
 print(f"[WORD] {len(WORD_KANA_DICT)}")
 print(f"[NATIVE] {len(NATIVE_DICT)}")
 
+# -----------------------
+# 辞書監査ログ
+# -----------------------
+
+AUDIT_LOG_PATH = (
+    "/home/bitnami/eng_app/logs/"
+    "dict_audit.jsonl"
+)
+
+def write_dict_audit_log(
+    action,
+    dict_type,
+    key,
+    old_value="",
+    new_value="",
+    source="manual"
+):
+
+    log = {
+
+        "time": datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+
+        "action": action,
+
+        "dict_type": dict_type,
+
+        "key": key,
+
+        "old_value": old_value,
+
+        "new_value": new_value,
+
+        "source": source
+    }
+
+    os.makedirs(
+        os.path.dirname(AUDIT_LOG_PATH),
+        exist_ok=True
+    )
+
+    with open(
+        AUDIT_LOG_PATH,
+        "a",
+        encoding="utf-8"
+    ) as f:
+
+        f.write(
+            json.dumps(
+                log,
+                ensure_ascii=False
+            ) + "\n"
+        )
+
+        
 # -----------------------
 # 正規化
 # -----------------------
@@ -728,7 +803,8 @@ def dict_hit_rate(text):
 # 単語fallback
 # -----------------------
 def fallback_word_katakana(text):
-
+    global UNKNOWN_WORDS
+    
     load_word_dict()
 
     words = text.split()
@@ -758,8 +834,29 @@ def fallback_word_katakana(text):
                 number_to_kana(w)
             )
 
+        
+        
         elif re.fullmatch(r"[a-zA-Z]+", w):
+
             print(f"[FALLBACK WORD] {w}")
+
+            UNKNOWN_WORDS[w.lower()] = (
+                UNKNOWN_WORDS.get(w.lower(), 0) + 1
+            )
+
+            with open(
+                UNKNOWN_WORDS_PATH,
+                "w",
+                encoding="utf-8"
+            ) as f:
+
+                json.dump(
+                    UNKNOWN_WORDS,
+                    f,
+                    ensure_ascii=False,
+                    indent=2
+                )
+
             result.append(w.upper())
         else:
 
@@ -1344,6 +1441,23 @@ def ai_sentence_katakana(text):
 
                     unknown_words.append(wl)
 
+                    UNKNOWN_WORDS[wl] = (
+                        UNKNOWN_WORDS.get(wl, 0) + 1
+                    )
+
+                    with open(
+                        UNKNOWN_WORDS_PATH,
+                        "w",
+                        encoding="utf-8"
+                    ) as f:
+
+                        json.dump(
+                            UNKNOWN_WORDS,
+                            f,
+                            ensure_ascii=False,
+                            indent=2
+                        )
+
             # 重複除去
             unknown_words = list(set(unknown_words))
 
@@ -1419,6 +1533,22 @@ def ai_sentence_katakana(text):
 
                     unknown_words.append(wl)
 
+                    UNKNOWN_WORDS[wl] = (
+                        UNKNOWN_WORDS.get(wl, 0) + 1
+                    )
+
+                    with open(
+                        UNKNOWN_WORDS_PATH,
+                        "w",
+                        encoding="utf-8"
+                    ) as f:
+
+                        json.dump(
+                            UNKNOWN_WORDS,
+                            f,
+                            ensure_ascii=False,
+                            indent=2
+                        )
             # 重複除去
             unknown_words = list(set(unknown_words))
 
@@ -2053,6 +2183,9 @@ def index():
 
     conn.close()
     
+    
+    
+    
     # -----------------------
     # 前回統計
     # -----------------------
@@ -2121,6 +2254,297 @@ def index():
   category=category
         
 )
+
+# -----------------------
+# 辞書管理TOP
+# -----------------------
+@app.route("/eng/dict_admin")
+
+def dict_admin():
+
+    return render_template(
+        "dict_admin.html"
+    )
+# -----------------------
+# 未知語一覧
+# -----------------------
+@app.route("/eng/unknown_words")
+
+def unknown_words():
+
+    items = sorted(
+        UNKNOWN_WORDS.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    return render_template(
+        "unknown_words.html",
+        items=items[:300]
+    )    
+# -----------------------
+# WORD辞書一覧
+# -----------------------
+@app.route("/eng/dict")
+def dict_list():
+
+    load_word_dict()
+
+    q = request.args.get(
+        "q",
+        ""
+    ).strip().lower()
+
+    page = int(
+        request.args.get(
+            "page",
+            1
+        )
+    )
+
+    PER_PAGE = 300
+
+    if q:
+
+        items = sorted([
+            (k, v)
+            for k, v in WORD_KANA_DICT.items()
+            if q in k
+            or q in v
+        ])
+
+        total_pages = 1
+
+    else:
+
+        all_items = sorted(
+            WORD_KANA_DICT.items()
+        )
+
+        start = (
+            (page - 1)
+            * PER_PAGE
+        )
+
+        end = start + PER_PAGE
+
+        items = all_items[start:end]
+
+        total_pages = (
+            len(all_items)
+            + PER_PAGE - 1
+        ) // PER_PAGE
+
+    return render_template(
+        "dict_list.html",
+        items=items,
+        q=q,
+        page=page,
+        total_pages=total_pages
+    )
+
+# -----------------------
+# 辞書監査ログ
+# -----------------------
+@app.route("/eng/dict_audit")
+
+def dict_audit():
+
+    logs = []
+
+    if os.path.exists(AUDIT_LOG_PATH):
+
+        with open(
+            AUDIT_LOG_PATH,
+            encoding="utf-8"
+        ) as f:
+
+            for line in f:
+
+                line = line.strip()
+
+                if not line:
+                    continue
+
+                try:
+
+                    logs.append(
+                        json.loads(line)
+                    )
+
+                except:
+
+                    pass
+
+    logs.reverse()
+
+    return render_template(
+        "dict_audit.html",
+        logs=logs[:300]
+    )
+# -----------------------
+# WORD辞書編集
+# -----------------------
+@app.route(
+    "/eng/dict_edit/<key>",
+    methods=["GET", "POST"]
+)
+
+def dict_edit(key):
+
+    load_word_dict()
+
+    key = key.lower()
+
+    if request.method == "POST":
+
+        kana = request.form.get(
+            "kana",
+            ""
+        ).strip()
+
+        old_value = WORD_KANA_DICT.get(key, "")
+
+        WORD_KANA_DICT[key] = kana
+
+        # JSON保存
+        with open(
+            f"{DICT_DIR}/word_kana.json",
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                WORD_KANA_DICT,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        # 監査ログ
+        write_dict_audit_log(
+            action="edit",
+            dict_type="word",
+            key=key,
+            old_value=old_value,
+            new_value=kana
+        )
+
+        return redirect("/eng/dict")
+
+    kana = WORD_KANA_DICT.get(key, "")
+
+    return render_template(
+        "dict_edit.html",
+        key=key,
+        kana=kana
+    )    
+# -----------------------
+# WORD辞書追加
+# -----------------------
+@app.route(
+    "/eng/dict_add",
+    methods=["GET", "POST"]
+)
+
+def dict_add():
+
+    load_word_dict()
+
+    error = ""
+
+    if request.method == "POST":
+
+        key = request.form.get(
+            "key",
+            ""
+        ).strip().lower()
+
+        kana = request.form.get(
+            "kana",
+            ""
+        ).strip()
+
+        if not key:
+
+            error = "KEYが空です"
+
+        elif key in WORD_KANA_DICT:
+
+            error = "既に存在します"
+
+        else:
+
+            WORD_KANA_DICT[key] = kana
+
+            with open(
+                f"{DICT_DIR}/word_kana.json",
+                "w",
+                encoding="utf-8"
+            ) as f:
+
+                json.dump(
+                    WORD_KANA_DICT,
+                    f,
+                    ensure_ascii=False,
+                    indent=2
+                )
+
+            write_dict_audit_log(
+                action="add",
+                dict_type="word",
+                key=key,
+                new_value=kana
+            )
+
+            return redirect("/eng/dict")
+
+    return render_template(
+        "dict_add.html",
+        error=error
+    )
+# -----------------------
+# WORD辞書削除
+# -----------------------
+@app.route(
+    "/eng/dict_delete/<key>",
+    methods=["POST"]
+)
+
+def dict_delete(key):
+
+    load_word_dict()
+
+    key = key.lower()
+
+    if key in WORD_KANA_DICT:
+
+        old_value = WORD_KANA_DICT[key]
+
+        del WORD_KANA_DICT[key]
+
+        with open(
+            f"{DICT_DIR}/word_kana.json",
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                WORD_KANA_DICT,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        write_dict_audit_log(
+            action="delete",
+            dict_type="word",
+            key=key,
+            old_value=old_value
+        )
+
+    return redirect("/eng/dict")  
+     
 # -----------------------
 # 管理画面
 # -----------------------
