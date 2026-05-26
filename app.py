@@ -1137,6 +1137,14 @@ def save_word_kana(word, kana):
 
         # メモリ辞書にも反映
         WORD_KANA_DICT[word] = kana
+
+        write_dict_audit_log(
+            action="add",
+            dict_type="word",
+            key=word,
+            new_value=kana,
+            source="auto"
+        )
 # -----------------------
 # ネイティブ発音辞書
 # -----------------------

@@ -1,3 +1,4 @@
 {"time": "2026-05-25 16:44:43", "action": "edit", "dict_type": "word", "key": "a", "old_value": "ア", "new_value": "アー", "source": "manual"}
 {"time": "2026-05-25 18:06:37", "action": "add", "dict_type": "word", "key": "esg", "old_value": "", "new_value": "イーエスジー", "source": "manual"}
 {"time": "2026-05-25 18:18:54", "action": "delete", "dict_type": "word", "key": "esg", "old_value": "イーエスジー", "new_value": "", "source": "manual"}
+{"time": "2026-05-26 11:15:45", "action": "add", "dict_type": "word", "key": "supercalifragilistic", "old_value": "", "new_value": "スーパーキャリフラジリスティック", "source": "auto"}
