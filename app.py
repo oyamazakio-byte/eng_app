@@ -3886,13 +3886,12 @@ def news_import():
             body = split_news_sentences(raw_body)
 
         # -----------------
-        # メール型
-        # タイトル2行
+        # タイトル複数行対応
         # -----------------
         elif len(lines) >= 3:
 
-            # 2行目が短い時だけタイトル結合
-            if len(lines[1]) <= 25:
+            # 2行目が短めならタイトル結合
+            if len(lines[1]) <= 40:
 
                 title = (
                     lines[0]
