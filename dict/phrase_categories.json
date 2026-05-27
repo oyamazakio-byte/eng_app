@@ -1,0 +1,15 @@
+{
+  "基本フレーズ": "10_phrase.json",
+  "カフェ": "20_cafe.json",
+  "空港": "30_airport.json",
+  "病院": "40_hospital.json",
+  "レストラン": "50_restaurant.json",
+  "日常会話": "60_daily.json",
+  "ホテル": "70_hotel.json",
+  "買い物": "80_shopping.json",
+  "駅・交通": "85_station.json",
+  "固定表現": "90_fixed_phrase.json",
+  "IT英語": "95_word_it.json",
+  "スポーツ": "96_word_sports.json",
+  "ネイティブ表現": "00_native.json"
+}

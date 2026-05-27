@@ -83,6 +83,32 @@ a{
     z-index:9999;
 }
 
+.category-box{
+    margin-bottom:20px;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    background:#f9f9f9;
+}
+
+.category-item{
+    display:inline-block;
+    margin:4px;
+    padding:10px 14px;
+    background:#eee;
+    border-radius:6px;
+    font-size:16px;
+    color:black;
+    cursor:pointer;
+}
+
+.active-category{
+    background:#4caf50;
+    color:white !important;
+    border:3px solid #2e7d32;
+    font-weight:bold;
+}
+
 </style>
 
 </head>
@@ -130,6 +156,36 @@ Page {{ page }} / {{ total_pages }}
 </div>
 
 <h1>{{ title }}</h1>
+
+{% if dict_type == "phrase" %}
+
+<div class="category-box">
+
+<b>カテゴリ一覧</b>
+
+<br><br>
+
+{% for category in phrase_categories %}
+
+<a
+    class="
+        category-item
+        {% if request.args.get('category') == category %}
+        active-category
+        {% endif %}
+    "
+    href="/eng/dict/phrase?category={{ category }}"
+>
+
+{{ category }}
+
+</a>
+
+{% endfor %}
+
+</div>
+
+{% endif %}
 
 <p>
 

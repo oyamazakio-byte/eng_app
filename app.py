@@ -333,6 +333,35 @@ print(f"[NATIVE] {len(NATIVE_DICT)}")
 # -----------------------
 # 辞書設定
 # -----------------------
+
+# -----------------------
+# PHRASEカテゴリ
+# -----------------------
+PHRASE_FILES_PATH = (
+    f"{DICT_DIR}/phrase_categories.json"
+)
+
+try:
+
+    with open(
+        PHRASE_FILES_PATH,
+        encoding="utf-8"
+    ) as f:
+
+        PHRASE_FILES = json.load(f)
+
+    print(
+        f"[PHRASE CATEGORY] "
+        f"{len(PHRASE_FILES)}"
+    )
+
+except Exception as e:
+
+    print(
+        f"[PHRASE CATEGORY ERROR] {e}"
+    )
+
+    PHRASE_FILES = {}
 DICT_CONFIG = {
 
     "word": {
@@ -2344,6 +2373,43 @@ def dict_list(dict_type):
         "q",
         ""
     ).strip().lower()
+    category = request.args.get(
+        "category",
+        ""
+    )
+
+    # -----------------------
+    # PHRASEカテゴリ切替
+    # -----------------------
+    if (
+        dict_type == "phrase"
+        and category in PHRASE_FILES
+    ):
+
+        filename = PHRASE_FILES[category]
+
+        path = f"{DICT_DIR}/{filename}"
+
+        try:
+
+            with open(
+                path,
+                encoding="utf-8"
+            ) as f:
+
+                data = json.load(f)
+
+                TARGET_DICT = {
+                    k.lower(): v
+                    for k, v in data.items()
+                }
+
+        except Exception as e:
+
+            print(
+                f"[CATEGORY LOAD ERROR] {e}"
+            )
+
 
     page = int(
         request.args.get(
@@ -2392,8 +2458,10 @@ def dict_list(dict_type):
         page=page,
         total_pages=total_pages,
         title=title,
-        dict_type=dict_type
+        dict_type=dict_type,
+        phrase_categories=PHRASE_FILES
     )
+    
 
 # -----------------------
 # 辞書監査ログ
@@ -2451,6 +2519,40 @@ def dict_edit(dict_type, key):
     config = DICT_CONFIG[dict_type]
 
     TARGET_DICT = config["dict"]
+
+    # -----------------------
+    # PHRASEカテゴリ切替
+    # -----------------------
+    if (
+        dict_type == "phrase"
+        and category in PHRASE_FILES
+    ):
+
+        filename = PHRASE_FILES[category]
+
+        path = f"{DICT_DIR}/{filename}"
+
+        try:
+
+            with open(
+                path,
+                encoding="utf-8"
+            ) as f:
+
+                data = json.load(f)
+
+                TARGET_DICT = {
+                    k.lower(): v
+                    for k, v in data.items()
+                }
+
+        except Exception as e:
+
+            print(
+                f"[CATEGORY LOAD ERROR] {e}"
+            )
+
+
 
     TARGET_PATH = config["path"]
 
