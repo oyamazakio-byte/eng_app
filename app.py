@@ -350,10 +350,51 @@ try:
 
         PHRASE_FILES = json.load(f)
 
-    print(
-        f"[PHRASE CATEGORY] "
-        f"{len(PHRASE_FILES)}"
-    )
+        CATEGORY_COUNTS = {}
+ 
+        # -----------------------
+        # カテゴリ件数集計
+        # -----------------------
+        for category, filename in PHRASE_FILES.items():
+
+            path = f"{DICT_DIR}/{filename}"
+
+            try:
+
+                with open(
+                    path,
+                    encoding="utf-8"
+                ) as cf:
+
+                    data = json.load(cf)
+
+                count = 0
+
+                for k in data.keys():
+
+                    key = k.lower()
+
+                    # 汚染除外
+                    if key in TRANSLATION_CACHE:
+
+                        continue
+
+                    count += 1
+
+                CATEGORY_COUNTS[category] = count
+
+            except Exception as e:
+
+                print(
+                    f"[CATEGORY COUNT ERROR] "
+                    f"{category} : {e}"
+                )
+
+                CATEGORY_COUNTS[category] = 0
+        print(    
+            f"[PHRASE CATEGORY] "
+            f"{len(PHRASE_FILES)}"
+        )
 
 except Exception as e:
 
@@ -2459,7 +2500,8 @@ def dict_list(dict_type):
         total_pages=total_pages,
         title=title,
         dict_type=dict_type,
-        phrase_categories=PHRASE_FILES
+        phrase_categories=PHRASE_FILES,
+        category_counts=CATEGORY_COUNTS
     )
     
 
@@ -2748,6 +2790,8 @@ def dict_delete(dict_type, key):
 # -----------------------
 @app.route("/eng/admin")
 def admin():
+
+    load_word_dict()
 
     q = request.args.get(
         "q",

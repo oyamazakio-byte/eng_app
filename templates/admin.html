@@ -78,7 +78,7 @@ font-weight:bold;
 color:{% if word_diff > 0 %}green{% else %}gray{% endif %};
 font-weight:bold;
 ">
-(+{{ word_diff }})
+({{ "%+d"|format(word_diff) }})
 </span>
 <br>
 
@@ -87,7 +87,7 @@ font-weight:bold;
 color:{% if native_diff > 0 %}green{% else %}gray{% endif %};
 font-weight:bold;
 ">
-(+{{ native_diff }})
+({{ "%+d"|format(native_diff) }})
 </span>
 <br>
 
