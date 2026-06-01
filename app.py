@@ -957,7 +957,7 @@ def fallback_word_katakana(text):
                     indent=2
                 )
 
-            result.append(w.upper())
+            result.append(w)
         else:
 
             result.append(w)
@@ -4036,8 +4036,11 @@ def news_import():
         # -----------------
         elif len(lines) >= 3:
 
-            # 2行目が短めならタイトル結合
-            if len(lines[1]) <= 40:
+            # 毎日1分!英字新聞は1行目をタイトル固定
+            if (
+                subcategory != "毎日1分!英字新聞"
+                and len(lines[1]) <= 40
+            ):
 
                 title = (
                     lines[0]
@@ -4054,6 +4057,7 @@ def news_import():
                 raw_body = " ".join(lines[1:])
 
             body = split_news_sentences(raw_body)
+            
         # -----------------
         # 1行だけ
         # -----------------
