@@ -4030,17 +4030,13 @@ def news_import():
             raw_body = " ".join(lines[2:])
 
             body = split_news_sentences(raw_body)
-
+            
         # -----------------
         # タイトル複数行対応
         # -----------------
         elif len(lines) >= 3:
 
-            # 毎日1分!英字新聞は1行目をタイトル固定
-            if (
-                subcategory != "毎日1分!英字新聞"
-                and len(lines[1]) <= 40
-            ):
+            if len(lines[1]) <= 40:
 
                 title = (
                     lines[0]
@@ -4057,7 +4053,6 @@ def news_import():
                 raw_body = " ".join(lines[1:])
 
             body = split_news_sentences(raw_body)
-            
         # -----------------
         # 1行だけ
         # -----------------
