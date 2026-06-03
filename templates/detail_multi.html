@@ -534,7 +534,20 @@ white-space:nowrap;">
 🗣 ネイティブ
 
 </button>
+<button
+onclick="toggleKanaLine({{ m.id }})"
+style="
+font-size:18px;
+padding:6px 10px;
+background:#009688;
+color:white;
+border:none;
+border-radius:8px;
+white-space:nowrap;">
 
+📝 カタカナ
+
+</button>
 </div>
 
 </div>
@@ -1470,13 +1483,7 @@ function speak(text, speaker, el=null, callback=null) {
         el.style.boxShadow =
             "0 0 20px rgba(255,235,59,0.9)";
 
-        // 🔵 上部へスクロール
-        el.scrollIntoView({
-
-            behavior: "smooth",
-
-            block: "start"
-        });
+        
     }
 
     const uttr =
@@ -1637,14 +1644,13 @@ function showMore(){
     .getElementById("moreBtn")
     .style.display = "none";
 }
+
 function showLearning(id){
 
     document.getElementById(
         "kana-learning-" + id
     ).style.display =
-        kanaVisible
-        ? "block"
-        : "none";
+        "block";
 
     document.getElementById(
         "kana-native-" + id
@@ -1662,9 +1668,50 @@ function showNative(id){
     document.getElementById(
         "kana-native-" + id
     ).style.display =
-        kanaVisible
-        ? "block"
-        : "none";
+        "block";
+}
+function toggleKanaLine(id){
+
+    const learning =
+        document.getElementById(
+            "kana-learning-" + id
+        );
+
+    const native =
+        document.getElementById(
+            "kana-native-" + id
+        );
+
+    const learningVisible =
+        learning.style.display != "none";
+
+    const nativeVisible =
+        native.style.display != "none";
+
+    if(
+        learningVisible ||
+        nativeVisible
+    ){
+
+        learning.style.display =
+            "none";
+
+        native.style.display =
+            "none";
+
+    }else{
+
+        if(nativeMode){
+
+            native.style.display =
+                "block";
+
+        }else{
+
+            learning.style.display =
+                "block";
+        }
+    }
 }
 function toggleGrammar(id){
 
