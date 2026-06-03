@@ -504,13 +504,13 @@ display:flex;
 gap:8px;
 flex-wrap:wrap;
 ">
-
 <button
+id="learning-btn-{{ m.id }}"
 onclick="showLearning({{ m.id }})"
 style="
 font-size:18px;
 padding:6px 10px;
-background:#673ab7;
+background:#9e9e9e;
 color:white;
 border:none;
 border-radius:8px;
@@ -521,11 +521,12 @@ white-space:nowrap;">
 </button>
 
 <button
+id="native-btn-{{ m.id }}"
 onclick="showNative({{ m.id }})"
 style="
 font-size:18px;
 padding:6px 10px;
-background:#e91e63;
+background:#9e9e9e;
 color:white;
 border:none;
 border-radius:8px;
@@ -535,17 +536,18 @@ white-space:nowrap;">
 
 </button>
 <button
+id="kana-btn-{{ m.id }}"
 onclick="toggleKanaLine({{ m.id }})"
 style="
 font-size:18px;
 padding:6px 10px;
-background:#009688;
+background:#9e9e9e;
 color:white;
 border:none;
 border-radius:8px;
 white-space:nowrap;">
 
-📝 カタカナ
+📝 カタカナ OFF
 
 </button>
 </div>
@@ -1644,7 +1646,6 @@ function showMore(){
     .getElementById("moreBtn")
     .style.display = "none";
 }
-
 function showLearning(id){
 
     document.getElementById(
@@ -1656,6 +1657,16 @@ function showLearning(id){
         "kana-native-" + id
     ).style.display =
         "none";
+
+    document.getElementById(
+        "learning-btn-" + id
+    ).style.background =
+        "#4caf50";
+
+    document.getElementById(
+        "native-btn-" + id
+    ).style.background =
+        "#9e9e9e";
 }
 
 function showNative(id){
@@ -1669,6 +1680,16 @@ function showNative(id){
         "kana-native-" + id
     ).style.display =
         "block";
+
+    document.getElementById(
+        "learning-btn-" + id
+    ).style.background =
+        "#9e9e9e";
+
+    document.getElementById(
+        "native-btn-" + id
+    ).style.background =
+        "#4caf50";
 }
 function toggleKanaLine(id){
 
@@ -1680,6 +1701,11 @@ function toggleKanaLine(id){
     const native =
         document.getElementById(
             "kana-native-" + id
+        );
+
+    const btn =
+        document.getElementById(
+            "kana-btn-" + id
         );
 
     const learningVisible =
@@ -1699,6 +1725,22 @@ function toggleKanaLine(id){
         native.style.display =
             "none";
 
+        btn.textContent =
+            "📝 カタカナ OFF";
+
+        btn.style.background =
+            "#9e9e9e";
+
+        document.getElementById(
+            "learning-btn-" + id
+        ).style.background =
+            "#9e9e9e";
+
+        document.getElementById(
+            "native-btn-" + id
+        ).style.background =
+            "#9e9e9e";
+
     }else{
 
         if(nativeMode){
@@ -1706,11 +1748,37 @@ function toggleKanaLine(id){
             native.style.display =
                 "block";
 
+            document.getElementById(
+                "learning-btn-" + id
+            ).style.background =
+                "#9e9e9e";
+
+            document.getElementById(
+                "native-btn-" + id
+            ).style.background =
+                "#4caf50";
+
         }else{
 
             learning.style.display =
                 "block";
+
+            document.getElementById(
+                "learning-btn-" + id
+            ).style.background =
+                "#4caf50";
+
+            document.getElementById(
+                "native-btn-" + id
+            ).style.background =
+                "#9e9e9e";
         }
+
+        btn.textContent =
+            "📝 カタカナ ON";
+
+        btn.style.background =
+            "#4caf50";
     }
 }
 function toggleGrammar(id){
