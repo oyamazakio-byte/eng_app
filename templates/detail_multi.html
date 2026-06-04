@@ -594,6 +594,7 @@ font-weight:bold;">
 {% endfor %}
 </div>
 {% endif %}
+
 <div style="
 margin-top:0;
 display:flex;
@@ -601,6 +602,22 @@ gap:4px;
 flex-wrap:wrap;
 align-items:center;
 ">
+
+<select
+onchange="setRateSelect(this)"
+style="
+font-size:18px;
+height:40px;
+border-radius:8px;
+">
+
+<option value="0.5">0.5</option>
+<option value="0.8">0.8</option>
+<option value="0.9" selected>0.9</option>
+<option value="1.0">1.0</option>
+<option value="1.2">1.2</option>
+
+</select>
 
 <button
 onclick="playOne(this)"
@@ -996,6 +1013,27 @@ function setRate(btn, rate){
 
     btn.style.color =
         "white";
+}
+function setRateSelect(sel){
+
+    speechRate =
+        parseFloat(
+            sel.value
+        );
+
+    document.getElementById(
+        "rateLabel"
+    ).innerText =
+        "現在速度: " +
+        speechRate;
+
+    document
+        .querySelectorAll("select")
+        .forEach(s => {
+
+            s.value =
+                speechRate;
+        });
 }
 // 🔵 ピッチ変更
 function setPitch(btn, pitch){
