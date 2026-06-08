@@ -167,6 +167,9 @@ def load_word_dict():
 
         name = os.path.basename(path)
 
+        if name == "unknown_words.json":
+            continue
+    
         try:
 
             with open(path, encoding="utf-8") as f:
@@ -180,8 +183,8 @@ def load_word_dict():
         WORD_KANA_DICT.update({
             k.lower(): v
             for k, v in data.items()
+            if isinstance(v, str)
         })
-
         print(
             f"[WORD LOAD] {name} : {len(data)}"
         )
@@ -904,11 +907,11 @@ def dict_hit_rate(text):
 # -----------------------
 def fallback_word_katakana(text):
     global UNKNOWN_WORDS
-    
+
     load_word_dict()
 
     words = text.split()
-    
+
     result = []
 
     for w in words:
@@ -921,6 +924,7 @@ def fallback_word_katakana(text):
             continue
 
         nw = normalize(w)
+
         if nw in WORD_KANA_DICT:
 
             result.append(
@@ -934,8 +938,6 @@ def fallback_word_katakana(text):
                 number_to_kana(w)
             )
 
-        
-        
         elif re.fullmatch(r"[a-zA-Z]+", w):
 
             print(f"[FALLBACK WORD] {w}")
@@ -958,10 +960,12 @@ def fallback_word_katakana(text):
                 )
 
             result.append(w)
+
         else:
 
             result.append(w)
 
+    
     joined = " ".join(result)
 
     for k, v in NATIVE_DICT.items():
@@ -969,6 +973,7 @@ def fallback_word_katakana(text):
         joined = joined.replace(k, v)
 
     return joined
+
 # -----------------------
 # 部分一致検索
 # 最長一致優先
