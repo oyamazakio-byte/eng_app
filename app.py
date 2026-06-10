@@ -4001,7 +4001,6 @@ def news_import():
             or "Share" == line
         ):
             continue
-
         # -----------------
         # 記号だけ除去
         # -----------------
@@ -4015,6 +4014,11 @@ def news_import():
 
     title = ""
     body = ""
+
+    print("==== NEWS LINES ====")
+
+    for i, x in enumerate(lines):
+        print(i, len(x), repr(x))
 
     if len(lines) >= 1:
 
@@ -4036,6 +4040,19 @@ def news_import():
 
             body = split_news_sentences(raw_body)
             
+        # -----------------
+        # 毎日1分!英字新聞
+        # -----------------
+        elif (
+            subcategory == "毎日1分!英字新聞"
+            and len(lines) >= 2
+        ):
+
+            title = lines[0]
+
+            raw_body = " ".join(lines[1:])
+
+            body = split_news_sentences(raw_body)
         # -----------------
         # タイトル複数行対応
         # -----------------
