@@ -6,13 +6,13 @@ import os
 import time
 import requests
 import glob
+from markupsafe import Markup
 from openai import OpenAI
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import jsonify
 from datetime import datetime
 
 USD_TO_JPY = 150
-
 practice_mode = "native"
 
 def split_news_sentences(text):
@@ -68,6 +68,31 @@ app = Flask(
     static_folder="static",
     static_url_path="/static"
 )
+
+def linkify(text):
+
+    if not text:
+
+        return ""
+
+    url_pattern = r"(https?://[^\s]+)"
+
+    text = re.sub(
+
+        url_pattern,
+
+        r'<a href="\1" target="_blank">\1</a>',
+
+        text
+
+    )
+
+    return Markup(text.replace("\n", "<br>"))
+
+@app.template_filter("linkify")
+def linkify_filter(text):
+    return linkify(text)
+        
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_proto=1, x_host=1)
