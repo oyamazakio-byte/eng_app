@@ -43,10 +43,9 @@ def split_news_sentences(text):
 
     # 文分割
     sentences = re.split(
-        r'(?<=[.!?])\s+(?=[A-Z"])',
+        r'(?<=[.!?]["”\'])\s+(?=[A-Z"])|(?<=[.!?])\s+(?=[A-Z"])',
         text
     )
-
     result = []
 
     for i, s in enumerate(sentences, 1):
