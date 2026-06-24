@@ -4105,7 +4105,7 @@ def news_import():
         elif len(lines) >= 3:
 
             if (
-                len(lines[1]) <= 20
+                len(lines[1]) <= 25
                 and "," not in lines[1]
                 and "." not in lines[1]
             ):
