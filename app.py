@@ -4148,10 +4148,18 @@ def news_import():
             title,
             flags=re.IGNORECASE
         )
+        
+        # source_text用に
+        # B1:, B2: を除去
+        body = re.sub(
+            r"^B\d*:\s*",
+            "",
+            body,
+            flags=re.MULTILINE
+        )
 
         # ニュースタイトル
         texts = [title]
-
         # ニュースは話者なし
         speakers = [""]
 
@@ -4179,17 +4187,20 @@ def news_import():
         (
             title,
             category,
-            subcategory
+            subcategory,
+            source_title,
+            source_text
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
             conv_title,
             "ニュース英語",
-            subcategory
+            subcategory,
+            title,
+            body
         )
     )
-
     conv_id = cur.lastrowid
 
     for i in range(len(texts)):
