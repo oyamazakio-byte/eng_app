@@ -4105,11 +4105,18 @@ def news_import():
         elif len(lines) >= 3:
 
             if (
-                len(lines[1]) <= 25
-                and "," not in lines[1]
+                "," not in lines[1]
                 and "." not in lines[1]
+                and not re.match(
+                    r"^(A|An|The)\s",
+                    lines[1]
+                )
+                and not re.search(
+                    r"\b(has|have|had|is|are|was|were)\b",
+                    lines[1],
+                    re.IGNORECASE
+                )
             ):
-
                 title = (
                     lines[0]
                     + " "
