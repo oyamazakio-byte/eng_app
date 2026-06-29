@@ -651,20 +651,6 @@ border-radius:8px;
 white-space:nowrap;
 ">
 
-<button
-onclick="playOne(this)"
-data-text="{{ m.text }}"
-data-speaker="{{ m.speaker }}"
-style="
-font-size:18px;
-background:#9c27b0;
-color:white;
-padding:6px 8px;
-height:40px;
-border:none;
-border-radius:8px;
-white-space:nowrap;
-">
 
 ▶ 再生
 
@@ -901,86 +887,118 @@ style="font-size:30px;padding:20px;width:100%;">
 
 </button>
 <!-- 📄 ソース表示ダイアログ -->
+
 <div
 id="sourceModal"
 style="
 display:none;
 position:fixed;
-top:5%;
-left:5%;
-width:90%;
-height:90%;
+top:80px;
+right:30px;
+width:700px;
+height:520px;
 background:white;
-border:4px solid #795548;
+border:3px solid #795548;
 border-radius:12px;
-box-shadow:0 0 20px rgba(0,0,0,0.5);
+box-shadow:0 6px 24px rgba(0,0,0,.35);
 z-index:99999;
+
+flex-direction:column;
+resize:both;
+overflow:hidden;
 ">
 
+<!-- タイトルバー -->
 <div
+id="sourceHeader"
 style="
 background:#795548;
 color:white;
-padding:14px;
-font-size:30px;
+padding:12px 18px;
+font-size:28px;
 font-weight:bold;
+
 display:flex;
 justify-content:space-between;
 align-items:center;
+
+flex:0 0 auto;
+cursor:move;
 ">
+        <span>📄 元ニュース</span>
 
-<span>📄 元ニュース</span>
+        <button
+        onclick="closeSource()"
+        style="
+        font-size:20px;
+        background:#f44336;
+        color:white;
+        border:none;
+        border-radius:8px;
+        padding:6px 14px;
+        cursor:pointer;
+        ">
+        ✖
+        </button>
 
-<button
-onclick="closeSource()"
+    </div>
+
+    <!-- 本文 -->
+    <div
+    style="
+    flex:1;
+    overflow:auto;
+    padding:18px;
+    background:yellow;
+    border:3px solid red;
+    min-height:300px;
+    ">
+       <div
 style="
-font-size:22px;
-background:#f44336;
-color:white;
-border:none;
-border-radius:8px;
-padding:8px 14px;
-">
-
-✖ 閉じる
-
-</button>
-
-</div>
-
-<div
-style="
-padding:20px;
-height:calc(100% - 70px);
-overflow:auto;
-">
-
-<div
-style="
-font-size:34px;
+font-size:32px;
 font-weight:bold;
-margin-bottom:20px;
+margin-bottom:18px;
+white-space:nowrap;
 ">
-
 {{ conv.source_title }}
-
 </div>
 
 <pre
 style="
-font-size:28px;
+margin:0;
+font-size:26px;
 line-height:1.6;
 white-space:pre-wrap;
-overflow:auto;
+word-break:break-word;
 ">
-
 {{ conv.source_text }}
-
 </pre>
+    </div>
 
+<!-- サイズ変更ハンドル -->
+<div
+id="resizeHandle"
+style="
+position:absolute;
+right:4px;
+bottom:4px;
+width:30px;
+height:30px;
+cursor:nwse-resize;
+
+display:flex;
+align-items:flex-end;
+justify-content:flex-end;
+
+font-size:20px;
+font-weight:bold;
+color:#795548;
+user-select:none;
+">
+◢
+</div>
 </div>
 
-</div>
 <script>
 
 let playing = false;
@@ -2037,15 +2055,293 @@ window.addEventListener(
 );
 function showSource(){
 
-    document.getElementById(
-        "sourceModal"
-    ).style.display = "block";
-}
+    const modal =
+        document.getElementById(
+            "sourceModal"
+        );
 
+    const left =
+        localStorage.getItem(
+            "sourceLeft"
+        );
+
+    const top =
+        localStorage.getItem(
+            "sourceTop"
+        );
+
+    const width =
+        localStorage.getItem(
+            "sourceWidth"
+        );
+
+    const height =
+        localStorage.getItem(
+            "sourceHeight"
+        );
+
+    if(left){
+        modal.style.left = left;
+        modal.style.right = "auto";
+    }
+
+    if(top){
+        modal.style.top = top;
+    }
+
+    if(width){
+        modal.style.width =
+            width + "px";
+    }
+
+    if(height){
+        modal.style.height =
+            height + "px";
+    }
+
+    modal.style.display = "flex";
+}
 function closeSource(){
+
+    saveSourceWindow();
 
     document.getElementById(
         "sourceModal"
     ).style.display = "none";
 }
+// ---------------------
+// ソース小窓の位置・サイズ保存
+// ---------------------
+function saveSourceWindow(){
+
+    const modal =
+        document.getElementById(
+            "sourceModal"
+        );
+
+    localStorage.setItem(
+        "sourceLeft",
+        modal.style.left
+    );
+
+    localStorage.setItem(
+        "sourceTop",
+        modal.style.top
+    );
+
+    localStorage.setItem(
+        "sourceWidth",
+        modal.offsetWidth
+    );
+
+    localStorage.setItem(
+        "sourceHeight",
+        modal.offsetHeight
+    );
+}
+// =====================
+// ソース小窓をドラッグ移動
+// =====================
+
+const sourceModal =
+    document.getElementById("sourceModal");
+
+const sourceHeader =
+    document.getElementById("sourceHeader");
+
+let drag = false;
+let offsetX = 0;
+let offsetY = 0;
+// =====================
+// サイズ変更
+// =====================
+
+const resizeHandle =
+    document.getElementById(
+        "resizeHandle"
+    );
+
+let resizing = false;
+let startWidth = 0;
+let startHeight = 0;
+let startX = 0;
+let startY = 0;
+
+// =====================
+// リサイズ開始（マウス）
+// =====================
+resizeHandle.addEventListener("mousedown", function(e){
+
+    resizing = true;
+
+    startWidth = sourceModal.offsetWidth;
+    startHeight = sourceModal.offsetHeight;
+
+    startX = e.clientX;
+    startY = e.clientY;
+
+    e.preventDefault();
+});
+
+// =====================
+// リサイズ開始（iPad）
+// =====================
+resizeHandle.addEventListener("touchstart", function(e){
+
+    resizing = true;
+
+    startWidth = sourceModal.offsetWidth;
+    startHeight = sourceModal.offsetHeight;
+
+    const touch = e.touches[0];
+
+    startX = touch.clientX;
+    startY = touch.clientY;
+
+    e.preventDefault();
+
+}, { passive:false });
+
+// =====================
+// リサイズ中（マウス）
+// =====================
+document.addEventListener("mousemove", function(e){
+
+    if(!resizing) return;
+
+    sourceModal.style.width =
+        (startWidth + (e.clientX - startX)) + "px";
+
+    sourceModal.style.height =
+        (startHeight + (e.clientY - startY)) + "px";
+});
+
+// =====================
+// リサイズ中（iPad）
+// =====================
+document.addEventListener("touchmove", function(e){
+
+    if(!resizing) return;
+
+    const touch = e.touches[0];
+
+    sourceModal.style.width =
+        (startWidth + (touch.clientX - startX)) + "px";
+
+    sourceModal.style.height =
+        (startHeight + (touch.clientY - startY)) + "px";
+
+    e.preventDefault();
+
+}, { passive:false });
+
+// =====================
+// リサイズ終了
+// =====================
+document.addEventListener("mouseup", function(){
+
+    if(resizing){
+
+        saveSourceWindow();
+    }
+
+    resizing = false;
+});
+
+document.addEventListener("touchend", function(){
+
+    if(resizing){
+
+        saveSourceWindow();
+    }
+
+    resizing = false;
+});
+
+// =====================
+// ドラッグ移動
+// =====================
+
+sourceHeader.addEventListener("mousedown", function(e){
+
+    drag = true;
+
+    offsetX =
+        e.clientX -
+        sourceModal.offsetLeft;
+
+    offsetY =
+        e.clientY -
+        sourceModal.offsetTop;
+});
+
+sourceHeader.addEventListener("touchstart", function(e){
+
+    drag = true;
+
+    const touch =
+        e.touches[0];
+
+    offsetX =
+        touch.clientX -
+        sourceModal.offsetLeft;
+
+    offsetY =
+        touch.clientY -
+        sourceModal.offsetTop;
+});
+
+document.addEventListener("mousemove", function(e){
+
+    if(!drag) return;
+
+    sourceModal.style.left =
+        (e.clientX - offsetX) + "px";
+
+    sourceModal.style.top =
+        (e.clientY - offsetY) + "px";
+
+    sourceModal.style.right =
+        "auto";
+});
+
+document.addEventListener("touchmove", function(e){
+
+    if(!drag) return;
+
+    const touch =
+        e.touches[0];
+
+    sourceModal.style.left =
+        (touch.clientX - offsetX) + "px";
+
+    sourceModal.style.top =
+        (touch.clientY - offsetY) + "px";
+
+    sourceModal.style.right =
+        "auto";
+
+    e.preventDefault();
+
+}, { passive:false });
+
+document.addEventListener("mouseup", function(){
+
+    if(drag){
+
+        saveSourceWindow();
+    }
+
+    drag = false;
+});
+
+document.addEventListener("touchend", function(){
+
+    if(drag){
+
+        saveSourceWindow();
+    }
+
+    drag = false;
+});
 </script>
