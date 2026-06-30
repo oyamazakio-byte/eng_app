@@ -925,7 +925,20 @@ align-items:center;
 flex:0 0 auto;
 cursor:move;
 ">
-        <span>📄 元ニュース</span>
+<div
+style="
+flex:1;
+overflow:hidden;
+white-space:nowrap;
+text-overflow:ellipsis;
+font-weight:bold;
+"
+title="{{ conv.title }}"
+>
+
+📄 {{ conv.title }}
+
+</div>
 
         <button
         onclick="closeSource()"
