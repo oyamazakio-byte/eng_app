@@ -918,6 +918,56 @@ def number_to_kana(num):
         NUM.get(c, c)
         for c in str(num)
     )
+
+
+def integer_to_kana(num):
+
+    special = {
+        "999": "ナイン ハンドレッド ナインティ ナイン"
+    }
+
+    if str(num) in special:
+        return special[str(num)]
+
+    try:
+        n = int(num)
+
+    except:
+        return str(num)
+
+    # 0～999 は既存処理を利用
+
+    if n <= 999:
+
+        return number_to_kana(str(n))
+
+    # 1,000～999,999
+
+    if n <= 999999:
+
+        thousands = n // 1000
+
+        rest = n % 1000
+
+        result = [
+
+            integer_to_kana(thousands),
+
+            "サウザンド"
+
+        ]
+
+        if rest > 0:
+
+            result.append(
+
+                number_to_kana(str(rest))
+
+            )
+
+        return " ".join(result)
+    return str(num)
+
 # -----------------------
 # 発音調整
 # -----------------------
@@ -994,7 +1044,7 @@ def fallback_word_katakana(text):
         elif re.fullmatch(r"\d+", w):
 
             result.append(
-                number_to_kana(w)
+                integer_to_kana(w)
             )
 
         elif re.fullmatch(r"[a-zA-Z]+", w):
@@ -1103,9 +1153,43 @@ def partial_match_translate(text, target_dict):
 
     return None
 # -----------------------
+# 年号 → カタカナ
+# -----------------------
+
+def year_to_katakana(year):
+
+    table = {
+
+        "2020": "トゥエンティ トゥエンティ",
+
+        "2021": "トゥエンティ トゥエンティワン",
+
+        "2022": "トゥエンティ トゥエンティツー",
+
+        "2023": "トゥエンティ トゥエンティスリー",
+
+        "2024": "トゥエンティ トゥエンティフォー",
+
+        "2025": "トゥエンティ トゥエンティファイブ",
+
+        "2026": "トゥエンティ トゥエンティシックス",
+
+        "2027": "トゥエンティ トゥエンティセブン",
+
+        "2028": "トゥエンティ トゥエンティエイト",
+
+        "2029": "トゥエンティ トゥエンティナイン",
+
+        "2030": "トゥエンティ サーティ",
+
+    }
+
+    return table.get(year, year)
+# -----------------------
 # カタカナ
 # -----------------------
 def to_katakana(text):
+    print(f"[to_katakana] {text}")
 
     global KANA_CACHE_HIT
     global KANA_TOTAL
@@ -1113,6 +1197,10 @@ def to_katakana(text):
     KANA_TOTAL += 1
 
     norm = normalize(text)
+
+    # 年号（例: 2026）
+    if re.fullmatch(r"\d{4}", norm):
+       return year_to_katakana(norm)
 
     # キャッシュ
     if norm in KATAKANA_CACHE:
@@ -1139,7 +1227,7 @@ def to_katakana(text):
 
         return (
             f"ザット ウィル ビー "
-            f"{number_to_kana(m.group(1))} "
+            f"{integer_to_kana(m.group(1))} "
             f"イェン"
         )
 
@@ -1648,7 +1736,6 @@ def ai_sentence_katakana(text):
                 batch_result = ai_katakana_batch(
                     unknown_words
                 )
-
             # -----------------------
             # kana_list生成
             # -----------------------
@@ -1658,7 +1745,14 @@ def ai_sentence_katakana(text):
 
                 wl = w.lower()
 
-                if wl in WORD_KANA_DICT:
+                # 数字
+                if re.fullmatch(r"\d+", w):
+
+                    kana_list.append(
+                        integer_to_kana(w)
+                    )
+
+                elif wl in WORD_KANA_DICT:
 
                     kana_list.append(
                         WORD_KANA_DICT[wl]
@@ -1687,7 +1781,7 @@ def ai_sentence_katakana(text):
 
             return result
 
-        # -----------------------
+        # ---------------------
         # 辞書生成モード
         # -----------------------
         if known_ratio >= 0.75:
