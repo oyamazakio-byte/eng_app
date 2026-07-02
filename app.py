@@ -582,7 +582,7 @@ def normalize(text):
     text = text.replace("'", "")
 
     # 記号除去
-    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    text = re.sub(r"[^a-z0-9,\s]", " ", text)
 
     # 空白整理（改行維持）
     text = re.sub(r"[ \t]+", " ", text)
@@ -930,11 +930,14 @@ def integer_to_kana(num):
         return special[str(num)]
 
     try:
-        n = int(num)
+
+       num = str(num).replace(",", "")
+
+       n = int(num)
 
     except:
-        return str(num)
 
+        return str(num)
     # 0～999 は既存処理を利用
 
     if n <= 999:
@@ -1021,6 +1024,8 @@ def fallback_word_katakana(text):
 
     words = text.split()
 
+    print("[WORDS]", words)
+
     result = []
 
     for w in words:
@@ -1040,13 +1045,16 @@ def fallback_word_katakana(text):
                 WORD_KANA_DICT[nw]
             )
 
+            continue
+
         # 数字
-        elif re.fullmatch(r"\d+", w):
+        num = w.replace(",", "")
+   
+        if re.fullmatch(r"\d+", num):
 
             result.append(
-                integer_to_kana(w)
+                integer_to_kana(num)
             )
-
         elif re.fullmatch(r"[a-zA-Z]+", w):
 
             print(f"[FALLBACK WORD] {w}")
@@ -1190,19 +1198,19 @@ def year_to_katakana(year):
 # -----------------------
 def to_katakana(text):
     print(f"[to_katakana] {text}")
-
+    load_word_dict()
     global KANA_CACHE_HIT
     global KANA_TOTAL
 
     KANA_TOTAL += 1
 
     norm = normalize(text)
-
+    print("[DEBUG] normalize OK")
     # 年号（例: 2026）
     if re.fullmatch(r"\d{4}", norm):
        return year_to_katakana(norm)
 
-    # キャッシュ
+    #  キャッシュ
     if norm in KATAKANA_CACHE:
 
         KANA_CACHE_HIT += 1
@@ -1243,10 +1251,13 @@ def to_katakana(text):
         )
 
     # 長文優先部分一致
+    print("[DEBUG] before partial")
+
     converted = partial_match(
         norm,
         PHRASE_DICT
     )
+    print("[DEBUG] after partial")
 
     if converted != norm:
 
@@ -1654,7 +1665,7 @@ def ai_sentence_katakana(text):
         # 短文は辞書のみ
         # -----------------------
         words = re.findall(
-            r"[a-zA-Z]+",
+            r"[a-zA-Z]+|\d[\d,\.]*",
             normalize(text)
         )
 
@@ -1746,12 +1757,14 @@ def ai_sentence_katakana(text):
                 wl = w.lower()
 
                 # 数字
-                if re.fullmatch(r"\d+", w):
+                if re.fullmatch(
+                    r"\d[\d,\.]*",
+                    w
+                ):
 
                     kana_list.append(
                         integer_to_kana(w)
                     )
-
                 elif wl in WORD_KANA_DICT:
 
                     kana_list.append(
@@ -1842,8 +1855,18 @@ def ai_sentence_katakana(text):
             for w in words:
 
                 wl = w.lower()
+                
+                # 数字
+                if re.fullmatch(
+                    r"\d[\d,\.]*",
+                    w
+                ):
 
-                if wl in WORD_KANA_DICT:
+                    kana_list.append(
+                        integer_to_kana(w)
+                    )
+
+                elif wl in WORD_KANA_DICT:
 
                     kana_list.append(
                         WORD_KANA_DICT[wl]
@@ -1857,7 +1880,10 @@ def ai_sentence_katakana(text):
                             w.upper()
                         )
                     )
+                    
 
+                    
+                
             result = " ".join(kana_list)
 
             print(
@@ -2076,15 +2102,18 @@ def ai_translate(text):
     AI_TRANS_COUNT += 1
 
     key = normalize(text)
-
+    
+    print("[DEBUG] before cache")
     # キャッシュ
     if key in TRANSLATION_CACHE:
+        
 
         print(
             f"[TRANS CACHE] {key}"
         )
 
         return TRANSLATION_CACHE[key]
+        print("[DEBUG] after cache")
 
     # -----------------------
     # retry 最大3回
@@ -4199,9 +4228,7 @@ def news_import():
         elif len(lines) >= 3:
 
             if (
-                "," not in lines[1]
-                and "." not in lines[1]
-                and not re.match(
+                not re.match(
                     r"^(A|An|The)\s",
                     lines[1]
                 )
