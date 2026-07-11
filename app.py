@@ -4227,29 +4227,24 @@ def news_import():
         # -----------------
         elif len(lines) >= 3:
 
-            if (
-                not re.match(
-                    r"^(A|An|The)\s",
-                    lines[1]
-                )
-                and not re.search(
-                    r"\b(has|have|had|is|are|was|were)\b",
-                    lines[1],
-                    re.IGNORECASE
-                )
+            # 2行目が本文ならタイトルは1行目だけ
+            if re.search(
+                r"\b(is|are|was|were|has|have|had|do|does|did|"
+                r"said|says|say|made|make|makes|tied)\b",
+                lines[1],
+                re.IGNORECASE
+            ) or re.match(
+                r"^(A|An|The)\s",
+                lines[1]
             ):
-                title = (
-                    lines[0]
-                    + " "
-                    + lines[1]
-                )
-
-                raw_body = " ".join(lines[2:])
-            else:
 
                 title = lines[0]
-
                 raw_body = " ".join(lines[1:])
+
+            else:
+
+                title = lines[0] + " " + lines[1]
+                raw_body = " ".join(lines[2:])
 
             body = split_news_sentences(raw_body)
         # -----------------
