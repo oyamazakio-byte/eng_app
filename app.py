@@ -62,12 +62,43 @@ def split_news_sentences(text):
     return "\n".join(result)
 
 
+# -----------------------
+# ニュース本文判定
+# -----------------------
+def is_body_line(line):
+
+    line = line.strip()
+
+    # 冠詞で始まる
+    if re.match(r"^(A|An|The)\s", line):
+        return True
+
+    # 前置詞で終わる
+    if re.search(
+        r"\b(to|for|with|against|over|under|into|onto|from|of|on|in|at|by|after|before|during|through)$",
+        line,
+        re.IGNORECASE
+    ):
+        return True
+
+    # 本文でよく使われる動詞
+    if re.search(
+        r"\b(is|are|was|were|has|have|had|do|does|did|"
+        r"said|says|say|made|make|makes|"
+        r"filed|announced|reported|confirmed|"
+        r"accused|tied)\b",
+        line,
+        re.IGNORECASE
+    ):
+        return True
+
+    return False
+
 app = Flask(
     __name__,
     static_folder="static",
     static_url_path="/static"
 )
-
 def linkify(text):
 
     if not text:
@@ -4227,16 +4258,7 @@ def news_import():
         # -----------------
         elif len(lines) >= 3:
 
-            # 2行目が本文ならタイトルは1行目だけ
-            if re.search(
-                r"\b(is|are|was|were|has|have|had|do|does|did|"
-                r"said|says|say|made|make|makes|tied)\b",
-                lines[1],
-                re.IGNORECASE
-            ) or re.match(
-                r"^(A|An|The)\s",
-                lines[1]
-            ):
+            if is_body_line(lines[1]):
 
                 title = lines[0]
                 raw_body = " ".join(lines[1:])
@@ -4247,7 +4269,7 @@ def news_import():
                 raw_body = " ".join(lines[2:])
 
             body = split_news_sentences(raw_body)
-        # -----------------
+        # ---------------
         # 1行だけ
         # -----------------
         else:
