@@ -2096,8 +2096,8 @@ function showSource(){
         );
 
     if(left){
-        modal.style.left = left;
-        modal.style.right = "auto";
+    modal.style.left = left;
+    modal.style.right = "auto";
     }
 
     if(top){
@@ -2109,12 +2109,27 @@ function showSource(){
             width + "px";
     }
 
-    if(height){
+   if(height){
         modal.style.height =
             height + "px";
-    }
+        } 
 
-    modal.style.display = "flex";
+   // まず表示
+modal.style.display = "flex";
+
+// 表示後に位置を確認
+const rect = modal.getBoundingClientRect();
+
+if (
+    rect.top < 0 ||
+    rect.left < 0 ||
+    rect.right > window.innerWidth ||
+    rect.bottom > window.innerHeight
+){
+    modal.style.left = "";
+    modal.style.right = "30px";
+    modal.style.top = "80px";
+}
 }
 function closeSource(){
 
