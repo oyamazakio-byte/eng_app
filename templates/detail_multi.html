@@ -807,8 +807,8 @@ white-space:pre-line;
 
 {{ m.grammar_note|linkify }}
 
-cv{% endif %}
 </div>
+{% endif %}
 {% endfor %}
 
 </div>
@@ -960,6 +960,7 @@ title="{{ conv.title }}"
     <div
     style="
     flex:1;
+    min-width:0;
     overflow:auto;
     padding:18px;
     background:yellow;
@@ -981,8 +982,9 @@ style="
 margin:0;
 font-size:26px;
 line-height:1.6;
-white-space:pre-wrap;
-word-break:break-word;
+white-space:pre;
+display:inline-block;
+min-width:max-content;
 ">
 {{ conv.source_text }}
 </pre>
