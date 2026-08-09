@@ -73,9 +73,9 @@ def is_body_line(line):
     if re.match(r"^(A|An|The)\s", line):
         return True
 
-    # 前置詞で終わる
-    if re.search(
-        r"\b(to|for|with|against|over|under|into|onto|from|of|on|in|at|by|after|before|during|through)$",
+    # 本文でよくある複数形の主語
+    if re.match(
+        r"^(Two|Three|Four|Five|Several|Many|Some)\s+\w+",
         line,
         re.IGNORECASE
     ):
@@ -86,14 +86,13 @@ def is_body_line(line):
         r"\b(is|are|was|were|has|have|had|do|does|did|"
         r"said|says|say|made|make|makes|"
         r"filed|announced|reported|confirmed|"
-        r"accused|tied)\b",
+        r"accused|tied|reached)\b",
         line,
         re.IGNORECASE
     ):
         return True
 
     return False
-
 app = Flask(
     __name__,
     static_folder="static",
@@ -3615,7 +3614,6 @@ def detail_multi(id):
         m_dict["warnings"] = warnings
 
         messages.append(m_dict)
-
     return render_template(
         "detail_multi.html",
         conv=conv,
@@ -4258,15 +4256,31 @@ def news_import():
         # -----------------
         elif len(lines) >= 3:
 
-            if is_body_line(lines[1]):
+            title_lines = []
+            body_start = 0
+
+            for i, line in enumerate(lines):
+
+                if is_body_line(line):
+
+                    body_start = i
+                    break
+
+                title_lines.append(line)
+
+            # 本文開始が見つからない場合
+            if body_start == 0:
 
                 title = lines[0]
                 raw_body = " ".join(lines[1:])
 
             else:
 
-                title = lines[0] + " " + lines[1]
-                raw_body = " ".join(lines[2:])
+                title = " ".join(title_lines)
+                raw_body = " ".join(lines[body_start:])
+
+            print("[TITLE]", title)
+            print("[BODY ]", raw_body[:80])
 
             body = split_news_sentences(raw_body)
         # ---------------
