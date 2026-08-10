@@ -80,7 +80,12 @@ def is_body_line(line):
         re.IGNORECASE
     ):
         return True
-
+    # 所有格で始まる本文
+    if re.match(
+        r"^[A-Z][A-Za-z'-]*'s\s+",
+        line 
+    ):
+        return True
     # 本文でよく使われる動詞
     if re.search(
         r"\b(is|are|was|were|has|have|had|do|does|did|"
@@ -4261,8 +4266,14 @@ def news_import():
 
             for i, line in enumerate(lines):
 
-                if is_body_line(line):
+                # 0行目は必ずタイトル
+                if i == 0:
+                    title_lines.append(line)
+                    continue
 
+                result = is_body_line(line)
+
+                if result:
                     body_start = i
                     break
 
@@ -4278,10 +4289,6 @@ def news_import():
 
                 title = " ".join(title_lines)
                 raw_body = " ".join(lines[body_start:])
-
-            print("[TITLE]", title)
-            print("[BODY ]", raw_body[:80])
-
             body = split_news_sentences(raw_body)
         # ---------------
         # 1行だけ
