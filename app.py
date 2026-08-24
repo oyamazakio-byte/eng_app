@@ -4207,6 +4207,9 @@ def news_import():
 
         if not line:
             continue
+        # コピー元に混入する不要な「Title」行を除外
+        if line.lower() == "title":
+            continue
 
         # -----------------
         # NHK共有ボタン除去
