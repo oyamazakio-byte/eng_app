@@ -74,12 +74,11 @@ def is_body_line(line):
 
     # 本文でよくある複数形の主語
     if re.match(
-        r"^(Two|Three|Four|Five|Several|Many|Some)\s+\w+",
+        r"^(At least|At most|Two|Three|Four|Five|Several|Many|Some)\s+\w+",
         line,
         re.IGNORECASE
     ):
         return True
-
     # 所有格で始まる本文
     if re.match(
         r"^[A-Z][A-Za-z'-]*'s\s+",
