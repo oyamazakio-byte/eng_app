@@ -79,6 +79,15 @@ def is_body_line(line):
         re.IGNORECASE
     ):
         return True
+    
+    # 本文でよくある「名詞＋of」で始まる形
+    if re.match(
+        r"^(Shipments|Sales|Exports|Imports|Production|Demand|Prices|"
+        r"Officials|Authorities|Residents|Researchers)\s+of\s+",
+        line,
+        re.IGNORECASE
+    ):
+        return True
     # 所有格で始まる本文
     if re.match(
         r"^[A-Z][A-Za-z'-]*'s\s+",
@@ -106,7 +115,7 @@ def is_body_line(line):
     # 本文でよく使われる動詞
     if re.search(
         r"\b(is|are|was|were|has|have|had|do|does|did|"
-        r"said|says|say|made|make|makes|"
+        r"said|says|say|made|make|makes|won|"
         r"filed|announced|reported|confirmed|"
         r"accused|tied|reached)\b",
         line,
