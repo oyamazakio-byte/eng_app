@@ -4311,9 +4311,11 @@ def news_import():
             # 本文開始が見つからない場合
             if body_start == 0:
 
-                title = lines[0]
-                raw_body = " ".join(lines[1:])
-
+                # 最低でも1行目以降をタイトル候補として保持
+                # ただし、本文開始を判定できなかった場合は
+                # 先頭2行をタイトルとして扱う
+                title = " ".join(lines[:2])
+                raw_body = " ".join(lines[2:])
             else:
 
                 title = " ".join(title_lines)
