@@ -79,13 +79,25 @@ def is_body_line(line):
         re.IGNORECASE
     ):
         return True
-    
+    # About で始まる本文
+    if re.match(
+        r"^About\s+\d",
+        line,
+        re.IGNORECASE
+    ):
+        return True
     # 本文でよくある「名詞＋of」で始まる形
     if re.match(
         r"^(Shipments|Sales|Exports|Imports|Production|Demand|Prices|"
         r"Officials|Authorities|Residents|Researchers)\s+of\s+",
         line,
         re.IGNORECASE
+    ):
+        return True
+    # 本文でよくある「人名＋of」で始まる形
+    if re.match(
+        r"^[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){1,4}\s+of\s+[A-Z]",
+        line
     ):
         return True
     # 所有格で始まる本文
@@ -4301,7 +4313,7 @@ def news_import():
                     continue
 
                 result = is_body_line(line)
-
+                print("[BODY CHECK]", i, repr(line), "=>", result)
                 if result:
                     body_start = i
                     break
