@@ -100,13 +100,25 @@ def is_body_line(line):
         line
     ):
         return True
+    # 人名で始まり、カンマで説明が続く本文
+    if re.match(
+        r"^[A-Z][A-Za-z'-]+\s+[A-Z][A-Za-z'-]+,\s",
+        line
+    ):
+        return True
     # 所有格で始まる本文
     if re.match(
         r"^[A-Z][A-Za-z'-]*'s\s+",
         line
     ):
         return True
-
+    # Former で始まる人物紹介の本文
+    if re.match(
+        r"^Former\s+.+\s+(slugger|player|manager|president|minister|governor|mayor)\b",
+        line,
+        re.IGNORECASE
+    ):
+        return True
     # 本文でよくある「役職・人物名」で始まる形
     if re.match(
         r"^(Ontario Premier|Prime Minister|President|Governor|Mayor|Minister)\s+",
