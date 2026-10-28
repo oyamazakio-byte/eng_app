@@ -128,7 +128,7 @@ def is_body_line(line):
         return True
     # 本文でよくある「国名・国籍＋肩書き・人物」で始まる形
     if re.match(
-        r"^(Argentina|Japanese|Canadian|American|British|French|German|"
+        r"^(Argentina|Brazilian|Japanese|Canadian|American|British|French|German|"
         r"Chinese|South Korean)\s+"
         r"(soccer superstar|superstar|artist|actor|actress|player|"
         r"official|officials|minister|president|prime minister)\s+",
