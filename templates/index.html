@@ -12,6 +12,96 @@ content="width=device-width, initial-scale=1.0">
 
 <link rel="apple-touch-icon" href="/static/icon.png">
 
+<style>
+@media screen and (max-width: 600px) {
+
+    /* 画面全体 */
+    body {
+        margin: 10px !important;
+    }
+
+    /* タイトル */
+    h1 {
+        font-size: 40px !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* 検索へ戻る */
+    a[href="#search-top"] {
+        font-size: 18px !important;
+        padding: 10px 14px !important;
+        top: 10px !important;
+        right: 10px !important;
+    }
+
+    /* 管理一覧 */
+    a[href="/eng/admin_menu"] {
+        font-size: 22px !important;
+        padding: 12px !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* お気に入り */
+    a[href="/eng/favorites"],
+    a[href="/eng/favorite_messages"] {
+        font-size: 20px !important;
+        padding: 12px 8px !important;
+    }
+
+    /* 検索欄 */
+    #search-top input {
+        font-size: 24px !important;
+        padding: 12px !important;
+    }
+
+    /* 検索ボタン */
+    #search-top button {
+        font-size: 18px !important;
+        padding: 10px !important;
+    }
+
+    /* カテゴリボタン */
+    div[style*="flex-wrap:wrap"] a {
+        font-size: 18px !important;
+        padding: 10px 12px !important;
+        transform: none !important;
+    }
+
+    /* 追加ボタン */
+    a[href="/eng/add_multi"],
+    a[href="/eng/general_add"],
+    a[href="/eng/news_add"] {
+        font-size: 22px !important;
+        padding: 14px !important;
+        margin-bottom: 12px !important;
+    }
+
+    /* 登録済み英文のカード */
+    ul li {
+        padding: 14px !important;
+        margin-bottom: 18px !important;
+    }
+
+    /* カテゴリ表示 */
+    ul li div[style*="font-size:26px"] {
+        font-size: 17px !important;
+    }
+
+    /* 登録済み英文タイトル */
+    ul li a[href^="/eng/detail_multi/"] {
+        font-size: 28px !important;
+        line-height: 1.4 !important;
+    }
+
+    /* お気に入り・編集・削除 */
+    ul li button {
+        font-size: 18px !important;
+        padding: 10px 5px !important;
+        min-height: 44px !important;
+    }
+
+}
+</style>
 </head>
 
 <body style="
