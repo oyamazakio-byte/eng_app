@@ -1704,7 +1704,7 @@ function toggleMessageFavorite(btn, id){
 
 // 音声
 function speak(text, speaker, el=null, callback=null) {
-
+document.getElementById("rateLabel").innerText = "speak関数に入りました";
     
 
     // 🔵 前回ハイライト解除
@@ -1734,6 +1734,7 @@ function speak(text, speaker, el=null, callback=null) {
         new SpeechSynthesisUtterance(text);
 
     uttr.lang = 'en-US';
+    uttr.voice = null;
 
     uttr.rate = speechRate;
 
@@ -1823,15 +1824,32 @@ function speak(text, speaker, el=null, callback=null) {
             uttr.voice = selectedVoice;
         }
     }
+    // iPhone音声再生の診断
+    uttr.onstart = function(){
+    document.getElementById("rateLabel").innerText =
+        "再生開始 / 音声：" +
+        (uttr.voice ? uttr.voice.name : "未指定") +
+        " / voices数：" + voices.length;
+    };
+    uttr.onerror = function(event){
+        document.getElementById("rateLabel").innerText =
+            "音声エラー: " + event.error;
+    };
 
     uttr.onend = function(){
 
-    if(callback){
+        document.getElementById("rateLabel").innerText =
+            "音声終了（正常終了イベント）";
 
-        callback();
-    }
-};
+        if(callback){
+            callback();
+        }
+    };
 
+
+document.getElementById("rateLabel").innerText =
+    "発声要求送信 / speaking=" + speechSynthesis.speaking +
+    " / pending=" + speechSynthesis.pending;
 speechSynthesis.speak(uttr);
 }
 

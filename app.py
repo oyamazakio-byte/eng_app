@@ -210,10 +210,8 @@ try:
 except:
 
     UNKNOWN_WORDS = {}
-
-
+    
 client = OpenAI()
-
 # -----------------------
 # AI PROMPTS
 # -----------------------
@@ -233,6 +231,7 @@ SHORT_SENTENCE_PROMPT = (
     "Use textbook pronunciation. "
     "Katakana only."
 )
+
 SHORT_TRANSLATE_PROMPT = """
 You are a translation engine.
 
@@ -272,9 +271,39 @@ Could you explain the major baseball batting metrics in detail, such as batting 
 Output:
 打率、OBP、SLG、OPS、WAR、およびwRC+などの主要な野球の打撃指標について詳しく説明していただけますか。
 """
+
 # -----------------------
-# JSON読み込み
+# ネイティブ発音専用プロンプト
 # -----------------------
+NATIVE_KANA_PROMPT = """
+You are an expert in General American conversational pronunciation.
+
+Convert the entire English sentence into Japanese katakana
+representing how it is naturally pronounced in casual American speech.
+
+Consider:
+- Connected speech and linking
+- Weak forms and reductions
+- Elision of sounds
+- Flapping of T and D
+- Assimilation
+- Natural stress and rhythm
+
+Do not transliterate word by word.
+Do not use textbook pronunciation.
+Focus on natural spoken American English.
+
+Preserve the meaning and order of the original sentence.
+
+Use natural reductions even when they differ from
+the original spelling.
+Do not add spaces between sounds unless there is a natural pause.
+
+Output Japanese katakana only.
+No explanation.
+"""
+
+
 def load_json(path):
 
     try:
@@ -458,7 +487,25 @@ try:
 except:
 
     KATAKANA_CACHE = {}
+# -----------------------
+# ネイティブ専用カタカナキャッシュ
+# -----------------------
+NATIVE_KATAKANA_CACHE_PATH = (
+    f"{DICT_DIR}/native_katakana_cache.json"
+)
 
+try:
+
+    with open(
+        NATIVE_KATAKANA_CACHE_PATH,
+        encoding="utf-8"
+    ) as f:
+
+        NATIVE_KATAKANA_CACHE = json.load(f)
+
+except:
+
+    NATIVE_KATAKANA_CACHE = {}
 # -----------------------
 # 汚染データ除去
 # -----------------------
@@ -1548,6 +1595,151 @@ def save_katakana_cache(
             f"[SAVE KANA] "
             f"{eng}"
         )
+# -----------------------
+# ネイティブ専用カタカナキャッシュ保存
+# -----------------------
+def save_native_katakana_cache(eng, kana):
+
+    eng = normalize(eng)
+
+    if eng not in NATIVE_KATAKANA_CACHE:
+
+        NATIVE_KATAKANA_CACHE[eng] = kana
+
+        with open(
+            NATIVE_KATAKANA_CACHE_PATH,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                NATIVE_KATAKANA_CACHE,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        print(
+            f"[SAVE NATIVE KANA] {eng}"
+        )
+# -----------------------
+# AI ネイティブ発音カタカナ
+# -----------------------
+def ai_native_katakana(text):
+
+    eng = normalize(text)
+
+    # キャッシュ確認
+    if eng in NATIVE_KATAKANA_CACHE:
+
+        print(
+            f"[NATIVE CACHE] {eng}"
+        )
+
+        return NATIVE_KATAKANA_CACHE[eng]
+
+    try:
+
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": NATIVE_KANA_PROMPT
+                },
+                {
+                    "role": "user",
+                    "content": text
+                }
+            ],
+            temperature=0
+        )
+
+        usage = getattr(response, "usage", None)
+
+        if usage:
+
+            prompt_tokens = usage.prompt_tokens
+            completion_tokens = usage.completion_tokens
+
+            cost = (
+                prompt_tokens * 0.0000004 +
+                completion_tokens * 0.0000016
+            )
+
+            conn = get_usage_db()
+
+            conn.execute(
+                """
+                INSERT INTO api_usage (
+                    created_at,
+                    model,
+                    prompt_tokens,
+                    completion_tokens,
+                    total_tokens,
+                    cost
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                    "gpt-4.1-mini",
+                    prompt_tokens,
+                    completion_tokens,
+                    usage.total_tokens,
+                    cost
+                )
+            )
+
+            conn.commit()
+            conn.close()
+
+            print(
+                f"[NATIVE API COST] "
+                f"prompt={prompt_tokens} "
+                f"completion={completion_tokens} "
+                f"cost=${cost:.8f}"
+            )
+
+        result = (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+        result = result.replace("「", "")
+        result = result.replace("」", "")
+        result = result.replace("。", "")
+        result = result.replace("、", " ")
+
+        if not result:
+            return text
+
+        print(
+            f"[AI NATIVE KANA] "
+            f"{text} -> {result}"
+        )
+
+        # ネイティブ専用キャッシュに保存
+        # 学習用単語辞書には登録しない
+        save_native_katakana_cache(
+            text,
+            result
+        )
+
+        return result
+
+    except Exception as e:
+
+        print(
+            f"[AI NATIVE KANA ERROR] {e}"
+        )
+
+        return text
 # -----------------------
 # AIカタカナ
 # -----------------------
@@ -3574,10 +3766,9 @@ def add_multi():
             kana = to_katakana(text)
 
             if practice_mode == "native":
-                kana_native = convert_native_kana(kana)
+                kana_native = ai_native_katakana(text)
             else:
                 kana_native = kana
-            
             japanese = translate(text)
 
             issues, warnings = detect_ng(
@@ -3822,7 +4013,7 @@ def retranslate(id):
     kana = to_katakana(text)
 
     if practice_mode == "native":
-        kana_native = convert_native_kana(kana)
+        kana_native = ai_native_katakana(text)
     else:
         kana_native = kana
 
@@ -3891,7 +4082,7 @@ def retranslate_all():
             kana = to_katakana(text)
 
             if practice_mode == "native":
-                kana_native = convert_native_kana(kana)
+                kana_native = ai_native_katakana(text)
             else:
                 kana_native = kana
  
@@ -4013,7 +4204,7 @@ def edit_conversation(id):
             kana = to_katakana(text)
 
             if practice_mode == "native":
-                kana_native = convert_native_kana(kana)
+                kana_native = ai_native_katakana(text)
             else:
                 kana_native = kana
 
@@ -4436,7 +4627,7 @@ def news_import():
         kana = to_katakana(text)
 
         if practice_mode == "native":
-            kana_native = convert_native_kana(kana)
+            kana_native = ai_native_katakana(text)
         else:
             kana_native = kana
 
@@ -4543,7 +4734,7 @@ def general_import():
         kana = to_katakana(text)
 
         if practice_mode == "native":
-            kana_native = convert_native_kana(kana)
+            kana_native = ai_native_katakana(text)
         else:
             kana_native = kana
 
