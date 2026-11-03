@@ -1,5 +1,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+/* 全端末共通：フラットカード表示 */
+#chat .line {
+    width: calc(100% - 40px);
+    max-width: none;
+    box-sizing: border-box;
+    margin: 10px auto;
+    background: #ffffff;
+}
 @media screen and (max-width: 600px) {
 
     /* 全ボタンの基本設定 */
@@ -13,7 +21,9 @@
     /* メッセージの余白 */
     .line {
         padding: 12px !important;
-        margin: 8px 5px !important;
+        width: calc(100% - 20px) !important;
+        margin: 8px auto !important;
+        box-sizing: border-box !important;
     }
 
     /* 英文 */
@@ -501,26 +511,19 @@ id="msg-{{ m.id }}"
 class="line moreLine"
 data-text="{{ m.text }}"
 data-speaker="{{ m.speaker }}"
-data-bg="{% if m.speaker == 'A' %}#e3f2fd{% else %}#fff3e0{% endif %}"
 style="
 {% if loop.index > 8 %}
 display:none;
 {% endif %}
-margin:10px 20px;
+width:calc(100% - 40px);
+box-sizing:border-box;
+margin:10px auto;
 padding:20px;
 border-radius:12px;
 border:3px solid {% if has_ng %}#f44336{% else %}#ddd{% endif %};
-{% if m.speaker == 'A' %}
-background:#e3f2fd;
-{% else %}
-background:#fff3e0;
-{% endif %}">
+background:#ffffff;">
 
-{% if m.speaker %}
-<b style="font-size:30px;">
-{{ m.speaker }}:
-</b>
-{% endif %}
+
 
 <div style="font-size:40px;font-weight:bold;">
 {{ m.text }}
@@ -866,6 +869,8 @@ white-space:pre-line;
 
 </div>
 {% endif %}
+
+</div>
 {% endfor %}
 
 </div>

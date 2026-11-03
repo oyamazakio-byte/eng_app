@@ -2508,6 +2508,145 @@ def ai_translate(text):
 # -----------------------
 # 翻訳
 # -----------------------   
+def ai_split_english_lines(text):
+    """
+    一般英語専用：
+    改行されずに連結された英文を自然な独立行に分割する。
+    元の単語・順序が変わっていないことを検証する。
+    """
+
+    import re
+    from collections import Counter
+
+    original = text.strip()
+
+    print(f"[AI SPLIT CALLED] input={original[:120]!r}", flush=True)
+
+    if not original:
+        return []
+
+    def words(value):
+        return re.findall(r"[A-Za-z0-9]+(?:['’][A-Za-z0-9]+)*", value.lower())
+
+    original_words = words(original)
+
+    for attempt in range(3):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You split English text into natural independent lines. "
+                            "The input may contain multiple complete sentences or "
+                            "expressions joined by spaces without punctuation or line breaks. "
+                            "You must identify and separate each independent sentence "
+                            "or expression using English grammar and meaning. "
+                            "Do not assume that a space means the same sentence continues. "
+                            "Recognize questions, statements, commands, greetings, and "
+                            "common conversational expressions as separate units. "
+                            "For example, this input: "
+                            "I enjoy listening to music What are you doing now? "
+                            "Take your time I hope you feel better soon "
+                            "That sounds like a good idea "
+                            "must become exactly these five lines: "
+                            "1. I enjoy listening to music "
+                            "2. What are you doing now? "
+                            "3. Take your time "
+                            "4. I hope you feel better soon "
+                            "5. That sounds like a good idea "
+                            "Preserve all original words, spelling, punctuation, and order. "
+                            "Never add, remove, rewrite, or summarize words. "
+                            "For lyrics, use natural phrase boundaries when clear. "
+                            "If a boundary is genuinely ambiguous, prefer keeping the "
+                            "expression together. "
+                            "Return JSON only: "
+                            '{"lines":["line 1","line 2"]}'
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": original
+                    }
+                ],
+                response_format={"type": "json_object"},
+                temperature=0
+            )
+
+            usage = getattr(response, "usage", None)
+
+            if usage:
+                prompt_tokens = usage.prompt_tokens
+                completion_tokens = usage.completion_tokens
+                cost = (
+                    prompt_tokens * 0.0000004
+                    + completion_tokens * 0.0000016
+                )
+
+                try:
+                    usage_conn = get_usage_db()
+                    usage_conn.execute(
+                        """
+                        INSERT INTO api_usage (
+                            created_at,
+                            model,
+                            prompt_tokens,
+                            completion_tokens,
+                            total_tokens,
+                            cost
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "gpt-4.1-mini",
+                            prompt_tokens,
+                            completion_tokens,
+                            usage.total_tokens,
+                            cost
+                        )
+                    )
+                    usage_conn.commit()
+                    usage_conn.close()
+                except Exception as usage_error:
+                    print(f"[LINE SPLIT USAGE ERROR] {usage_error}")
+
+            content = response.choices[0].message.content
+            data = json.loads(content)
+            result = data.get("lines")
+
+            if (
+                not isinstance(result, list)
+                or not result
+                or not all(isinstance(item, str) and item.strip() for item in result)
+            ):
+                raise ValueError("AI returned an invalid lines list")
+
+            result = [item.strip() for item in result]
+
+            result_words = []
+            for item in result:
+                result_words.extend(words(item))
+
+            if Counter(original_words) != Counter(result_words):
+                raise ValueError("AI changed, added, or removed words")
+
+            if original_words != result_words:
+                raise ValueError("AI changed the original word order")
+
+            print(f"[AI LINE SPLIT] {len(result)} lines")
+            return result
+
+        except Exception as e:
+            print(f"[AI LINE SPLIT ERROR {attempt + 1}/3] {e}")
+            if attempt == 2:
+                print("[AI LINE SPLIT] Keep original text")
+                return [original]
+            time.sleep(2)
+
+    return [original]
+
 def translate(text):
 
     global TRANS_CACHE_HIT
@@ -4164,42 +4303,27 @@ def edit_conversation(id):
             (id,)
         )
 
-        lines = lines_raw.split("\n")
+        # 一般英語だけAIで英文を分割する
+        if category == "一般英語":
+            texts = []
 
-        speaker_toggle = "A"
+            for line in lines_raw.splitlines():
+                line = line.strip()
 
-        for line in lines:
+                if not line:
+                    continue
 
-            line = line.strip()
+                texts.extend(ai_split_english_lines(line))
 
-            if not line:
-                continue
+        else:
+            # 一般英語以外は従来どおり改行で分割
+            texts = [
+                line.strip()
+                for line in lines_raw.splitlines()
+                if line.strip()
+            ]
 
-            if line.startswith("A:"):
-
-                speaker = "A"
-                text = line[2:].strip()
-
-            elif re.match(r"^B\d*:", line):
-
-                speaker = "B"
-
-                text = re.sub(
-                    r"^B\d*:\s*",
-                    "",
-                    line
-                )
-
-            else:
-
-                speaker = speaker_toggle
-                text = line
-
-                speaker_toggle = (
-                    "B"
-                    if speaker_toggle == "A"
-                    else "A"
-                )
+        for text in texts:
 
             kana = to_katakana(text)
 
@@ -4223,7 +4347,7 @@ def edit_conversation(id):
             VALUES (?,?,?,?,?,?)
             """, (
                 id,
-                speaker,
+                "",
                 text,
                 japanese,
                 kana,
@@ -4263,21 +4387,10 @@ def edit_conversation(id):
 
     conn.close()
 
-    lines = []
-
-    for r in rows:
-
-        if r['speaker']:
-
-            lines.append(
-                f"{r['speaker']}: {r['text']}"
-            )
-
-        else:
-
-            lines.append(
-                r['text']
-            )
+    lines = [
+        r['text']
+        for r in rows
+    ]
 
     return render_template(
         "edit_multi.html",
@@ -4704,7 +4817,8 @@ def general_import():
         if not line:
             continue
 
-        texts.append(line)
+        split_lines = ai_split_english_lines(line)
+        texts.extend(split_lines)
 
     conn = get_db()
 
@@ -4726,8 +4840,6 @@ def general_import():
     )
 
     conv_id = cur.lastrowid
-
-    speaker_toggle = "A"
 
     for text in texts:
 
@@ -4755,18 +4867,12 @@ def general_import():
             """,
             (
                 conv_id,
-                speaker_toggle,
+                "",
                 text,
                 japanese,
                 kana,
                 kana_native
             )
-        )
-
-        speaker_toggle = (
-            "B"
-            if speaker_toggle == "A"
-            else "A"
         )
 
     conn.commit()
