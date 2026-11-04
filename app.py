@@ -4828,14 +4828,18 @@ def general_import():
         (
             title,
             category,
-            subcategory
+            subcategory,
+            source_title,
+            source_text
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
             conv_title,
             "一般英語",
-            subcategory
+            subcategory,
+            conv_title,
+            raw
         )
     )
 
