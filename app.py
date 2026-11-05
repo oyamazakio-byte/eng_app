@@ -278,30 +278,50 @@ Output:
 NATIVE_KANA_PROMPT = """
 You are an expert in General American conversational pronunciation.
 
-Convert the entire English sentence into Japanese katakana
-representing how it is naturally pronounced in casual American speech.
+Convert the entire English sentence into Japanese katakana that represents
+natural American English pronunciation for an English learner.
 
-Consider:
-- Connected speech and linking
-- Weak forms and reductions
-- Elision of sounds
-- Flapping of T and D
-- Assimilation
-- Natural stress and rhythm
+Important:
+- Preserve the original meaning and word order.
+- Keep each English word recognizable in the katakana.
+- Do NOT excessively reduce, merge, or delete sounds.
+- Do NOT create katakana by simply reading the English spelling.
+- Use the actual American pronunciation as the basis.
+- Natural linking is allowed, but clarity for an English learner is more important
+  than extreme casual-speech reduction.
+- Keep important consonants audible.
+- Do not remove final consonants just because they may be weak in casual speech.
+- Represent contractions according to their actual pronunciation.
+  Examples:
+  you've -> ユーヴ
+  he's -> ヒーズ
+  she's -> シーズ
+  it's -> イッツ
+  don't -> ドウント
+  can't -> キャント
+- Represent common American vowel sounds naturally.
+- Do not replace /v/ with a Japanese /b/ sound.
+- Do not replace /θ/ or /ð/ with unrelated sounds.
+- Do not shorten words merely to make the katakana look smoother.
 
-Do not transliterate word by word.
-Do not use textbook pronunciation.
-Focus on natural spoken American English.
+Examples:
+You think you've lost your love
+-> ユー シンク ユーヴ ロスト ユア ラヴ
 
-Preserve the meaning and order of the original sentence.
+I've seen it before.
+-> アイヴ シーン イット ビフォア
 
-Use natural reductions even when they differ from
-the original spelling.
-Do not add spaces between sounds unless there is a natural pause.
+She's going to call you.
+-> シーズ ゴーイング トゥ コール ユー
+
+The goal is a learner-friendly representation of natural American pronunciation,
+not an exaggerated or extremely reduced imitation of fast speech.
 
 Output Japanese katakana only.
+Separate words with spaces.
 No explanation.
 """
+
 
 
 def load_json(path):
@@ -1326,11 +1346,83 @@ def year_to_katakana(year):
 
     return table.get(year, year)
 # -----------------------
+# 時刻表現 → 英語読み
+# -----------------------
+def expand_time_expression(text):
+
+    ones = [
+        "zero", "one", "two", "three", "four",
+        "five", "six", "seven", "eight", "nine",
+        "ten", "eleven", "twelve", "thirteen",
+        "fourteen", "fifteen", "sixteen",
+        "seventeen", "eighteen", "nineteen"
+    ]
+
+    tens = {
+        2: "twenty",
+        3: "thirty",
+        4: "forty",
+        5: "fifty"
+    }
+
+    def number_words(n):
+
+        if n < 20:
+            return ones[n]
+
+        if n < 60:
+            t = n // 10
+            o = n % 10
+
+            result = tens[t]
+
+            if o:
+                result += " " + ones[o]
+
+            return result
+
+        return str(n)
+
+    pattern = (
+        r"\b(\d{1,2}):(\d{2})\s*"
+        r"(a\.m\.|p\.m\.|am|pm)(?![a-z])"
+    )
+
+    def replace_time(match):
+
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        suffix = match.group(3).lower()
+
+        result = number_words(hour)
+
+        if minute > 0:
+            result += " " + number_words(minute)
+
+        if suffix.startswith("a"):
+            result += " ay em"
+        else:
+            result += " pee em"
+
+        return result
+
+    return re.sub(
+        pattern,
+        replace_time,
+        text,
+        flags=re.IGNORECASE
+    )
+# -----------------------
 # カタカナ
 # -----------------------
 def to_katakana(text):
     print(f"[to_katakana] {text}")
     load_word_dict()
+
+    # 時刻表現を英語の読み方に展開
+    text = expand_time_expression(text)
+    print(f"[TIME EXPANDED] {text}")
+    
     global KANA_CACHE_HIT
     global KANA_TOTAL
 
@@ -1629,6 +1721,16 @@ def ai_native_katakana(text):
 
     eng = normalize(text)
 
+    # 時刻表現を英語の読み方に展開
+    native_text = expand_time_expression(text)
+    
+    # 時刻表現がある場合は古いキャッシュを使用しない
+    has_time = bool(re.search(
+        r"\b\d{1,2}:\d{2}\s*(?:a\.m\.|p\.m\.|am|pm)(?![a-z])",
+        text,
+        re.IGNORECASE
+    ))
+
     # キャッシュ確認
     if eng in NATIVE_KATAKANA_CACHE:
 
@@ -1637,7 +1739,6 @@ def ai_native_katakana(text):
         )
 
         return NATIVE_KATAKANA_CACHE[eng]
-
     try:
 
         response = client.chat.completions.create(
@@ -1649,7 +1750,7 @@ def ai_native_katakana(text):
                 },
                 {
                     "role": "user",
-                    "content": text
+                    "content": native_text
                 }
             ],
             temperature=0
@@ -4303,27 +4404,65 @@ def edit_conversation(id):
             (id,)
         )
 
-        # 一般英語だけAIで英文を分割する
+        # 会話の種類ごとに英文と話者を整理
+        records = []
+
         if category == "一般英語":
-            texts = []
 
             for line in lines_raw.splitlines():
+
                 line = line.strip()
 
                 if not line:
                     continue
 
-                texts.extend(ai_split_english_lines(line))
+                split_lines = ai_split_english_lines(line)
+
+                for text in split_lines:
+                    records.append(("", text))
+
+        elif category == "ロールプレイ":
+
+            for line in lines_raw.splitlines():
+
+                line = line.strip()
+
+                if not line:
+                    continue
+
+                if line.startswith("A:"):
+
+                    speaker = "A"
+                    text = line[2:].strip()
+
+                elif re.match(r"^B\d*:", line):
+
+                    speaker = "B"
+                    text = re.sub(
+                        r"^B\d*:\s*",
+                        "",
+                        line
+                    ).strip()
+
+                else:
+
+                    speaker = ""
+                    text = line
+
+                if text:
+                    records.append((speaker, text))
 
         else:
-            # 一般英語以外は従来どおり改行で分割
-            texts = [
-                line.strip()
-                for line in lines_raw.splitlines()
-                if line.strip()
-            ]
 
-        for text in texts:
+            for line in lines_raw.splitlines():
+
+                line = line.strip()
+
+                if line:
+                    records.append(("", line))
+
+        # メッセージ保存
+        for speaker, text in records:
 
             kana = to_katakana(text)
 
@@ -4347,13 +4486,12 @@ def edit_conversation(id):
             VALUES (?,?,?,?,?,?)
             """, (
                 id,
-                "",
+                speaker,
                 text,
                 japanese,
                 kana,
                 kana_native
             ))
-
         conn.commit()
 
         conn.close()
@@ -4387,15 +4525,26 @@ def edit_conversation(id):
 
     conn.close()
 
-    lines = [
-        r['text']
-        for r in rows
-    ]
+    if conv['category'] == "ロールプレイ":
 
+        lines = [
+            f"{r['speaker']}: {r['text']}"
+            if r['speaker'] in ("A", "B")
+            else r['text']
+            for r in rows
+        ]
+
+    else:
+
+        lines = [
+            r['text']
+            for r in rows
+        ]
+        
     return render_template(
-        "edit_multi.html",
-        conv=conv,
-        lines="\n".join(lines)
+    "edit_multi.html",
+    conv=conv,
+    lines="\n".join(lines)
     )
 # -----------------------
 # お気に入り切替
