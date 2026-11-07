@@ -15,7 +15,50 @@ text-align:center;">
 
 <form method="post" style="padding:10px;">
 
+<label style="font-size:36px;">種類</label><br>
+
+<select
+name="subcategory"
+style="
+font-size:40px;
+width:100%;
+padding:22px;
+margin-bottom:30px;
+border-radius:12px;
+border:4px solid #333;
+">
+
+<option value="一般ロールプレイ">
+一般ロールプレイ
+</option>
+
+<option value="基礎英語1">
+基礎英語1
+</option>
+
+<option value="基礎英語2">
+基礎英語2
+</option>
+
+</select>
+
+<label style="font-size:36px;">年月</label><br>
+
+<input
+type="month"
+name="year_month"
+value="{{ year_month or '' }}"
+style="
+font-size:40px;
+width:100%;
+padding:22px;
+margin-bottom:30px;
+border-radius:12px;
+border:4px solid #333;
+">
+
 <label style="font-size:36px;">タイトル</label><br>
+
 <input
 name="title"
 value="{{ title or '' }}"
@@ -29,14 +72,19 @@ border-radius:12px;
 border:4px solid #333;
 ">
 
-<label style="font-size:36px;">会話（A: / B:）</label><br>
+<label style="font-size:36px;">会話（A: / B: または話者名:）</label><br>
 
 <textarea
 name="lines"
 rows="10"
 placeholder="A: Hello. Can I get a coffee?
 B: Sure. Hot or iced?
-A: Hot, please."
+A: Hot, please.
+
+または
+
+Gordon: The autumn leaves are lovely.
+Shingo: Yeah, but just wait."
 style="
 font-size:36px;
 width:100%;
@@ -46,6 +94,7 @@ border:4px solid #333;
 line-height:1.6;
 "
 >{{ lines or '' }}</textarea>
+
 <br><br>
 
 <button style="

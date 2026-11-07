@@ -289,7 +289,7 @@ transform:{% if category == 'ニュース英語' %}scale(1.08){% else %}scale(1)
 📰 ニュース英語
 </a>
 
-<a href="/eng/?category=ロールプレイ"
+<a href="/eng/roleplay"
 style="
 padding:14px 20px;
 font-size:28px;
@@ -402,6 +402,11 @@ color:#666;
 {% if row.subcategory %}
 &nbsp;>&nbsp;
 {{ row.subcategory }}
+{% endif %}
+
+{% if row.year_month %}
+&nbsp;>&nbsp;
+{{ row.year_month[:4] }}年{{ row.year_month[5:7]|int }}月
 {% endif %}
 
 </div>

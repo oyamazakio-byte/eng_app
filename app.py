@@ -3929,6 +3929,16 @@ def add_multi():
         ).strip()
         
 
+        subcategory = request.form.get(
+            "subcategory",
+            "一般ロールプレイ"
+        ).strip()
+
+        year_month = request.form.get(
+            "year_month",
+            ""
+        ).strip()
+
         lines_raw = request.form.get(
             "lines",
             ""
@@ -3939,45 +3949,453 @@ def add_multi():
 
         lines = lines_raw.split("\n")
 
-        texts = []
-        speakers = []
+        # ---------------------------------------------------------
+        # 同じ行に複数の話者名が続くOCR形式を分割
+        #
+        # 例:
+        #   Pete: Understood. Elizabeth:Bob? What's so funny?
+        #
+        # ↓
+        #
+        #   Pete: Understood.
+        #   Elizabeth:Bob? What's so funny?
+        #
+        # 文の途中にある単語を話者名と誤認しないよう、
+        # 「. ! ?」の直後にある名前＋コロンだけを対象にする。
+        # ---------------------------------------------------------
+        normalized_lines = []
 
-        speaker_toggle = "A"
+        for raw_line in lines:
 
-        for line in lines:
-
-            line = line.strip()
+            line = raw_line.strip()
 
             if not line:
                 continue
 
-            if line.startswith("A:"):
+            # 文末記号の直後にある「名前:」を探す。
+            # 例: "Understood. Elizabeth:Bob?"
+            pattern = r'(?<=[.!?])\s+([A-Z][A-Za-z .\'-]*):(?=[A-Za-z?!.])'
 
-                speakers.append("A")
-                texts.append(
-                    line[2:].strip()
+            matches = list(re.finditer(pattern, line))
+
+            if matches:
+
+                first = matches[0]
+
+                # 最初の話者部分
+                first_part = line[:first.start() + 1].strip()
+
+                if first_part:
+                    normalized_lines.append(first_part)
+
+                # 2人目以降
+                for idx, match in enumerate(matches):
+
+                    start_pos = match.start() + 1
+
+                    end_pos = (
+                        matches[idx + 1].start() + 1
+                        if idx + 1 < len(matches)
+                        else len(line)
+                    )
+
+                    part = line[start_pos:end_pos].strip()
+
+                    if part:
+                        normalized_lines.append(part)
+
+            else:
+                normalized_lines.append(line)
+
+        lines = normalized_lines
+
+        texts = []
+        speakers = []
+
+        # ---------------------------------------------------------
+        # ロールプレイ話者自動変換
+        #
+        # 対応:
+        #   A: Hello.
+        #   B: Hi.
+        #
+        #   Station staff
+        #   Welcome!
+        #
+        #   Station staff Welcome!
+        #   Carl Yes.
+        #
+        # 話者は初登場順に A, B, C, D, E... を割り当てる
+        # ---------------------------------------------------------
+
+        speaker_map = {}
+        next_speaker_index = 0
+
+        def get_speaker_label(name):
+
+            nonlocal next_speaker_index
+
+            if name not in speaker_map:
+
+                speaker_map[name] = chr(
+                    ord("A") + next_speaker_index
                 )
 
-            elif re.match(r"^B\d*:", line):
+                next_speaker_index += 1
 
-                speakers.append("B")
+            return speaker_map[name]
 
-                text = re.sub(r"^B\d*:\s*", "", line)
+        # NHK OCRでよく出る文頭語
+        common_starts = {
+            "Welcome", "Hello", "Hi", "Good", "Please",
+            "Thank", "Thanks", "Sorry", "Excuse", "Let",
+            "Look", "Listen", "Now", "Well", "Oh", "Okay",
+            "Yes", "No", "The", "I", "It's", "That's",
+            "What", "Where", "Who", "How", "Can", "Are",
+            "Do", "Does", "Is", "We", "You", "He",
+            "She", "They"
+        }
 
-                texts.append(text.strip())
-            else:
+        def is_speaker_line(line):
+
+            # 「Bob:」のような話者名だけの行
+            m = re.match(
+                r"^([A-Za-z][A-Za-z .'-]*):$",
+                line
+            )
+
+            if m:
+                name = m.group(1).strip()
+
+                if name:
+                    words = name.split()
+
+                    if len(words) == 1:
+                        return (
+                            name[0].isupper()
+                            and name.isalpha()
+                            and name not in common_starts
+                        )
+
+                    if len(words) == 2:
+                        first, second = words
+
+                        return (
+                            first[0].isupper()
+                            and first.isalpha()
+                            and second[0].islower()
+                            and second.isalpha()
+                            and first not in common_starts
+                        )
+
+            if line.endswith(
+                (".", "!", "?", ",", ":")
+            ):
+                return False
+
+            words = line.split()
+
+            # 1語の話者名
+            if len(words) == 1:
+
+                w = words[0]
+
+                return (
+                    w[0].isupper()
+                    and w.isalpha()
+                    and w not in common_starts
+                )
+
+            # 2語の話者名
+            # 例: Station staff
+            if len(words) == 2:
+
+                first, second = words
+
+                return (
+                    first[0].isupper()
+                    and first.isalpha()
+                    and second[0].islower()
+                    and second.isalpha()
+                    and first not in common_starts
+                )
+
+            return False
+
+        def split_speaker(line):
+
+            # 名前＋コロン形式
+            # 例: Gordon: Mo-shi?
+            #     Shingo: Sure!
+            m = re.match(
+                r"^([A-Za-z][A-Za-z .'-]*):\s*(.*)$",
+                line
+            )
+
+            if m:
+                name = m.group(1).strip()
+                body = m.group(2).strip()
+
+                if name and body:
+                    return name, body
+
+            words = line.split()
+
+            if len(words) < 2:
+                return None, None
+
+            # 2語の話者名
+            # 例: Station staff Welcome...
+            if len(words) >= 3:
+
+                second = words[1]
+                third = words[2]
+
+                if (
+                    words[0][0].isupper()
+                    and second[0].islower()
+                    and third[0].isupper()
+                ):
+
+                    return (
+                        words[0] + " " + second,
+                        " ".join(words[2:])
+                    )
+
+            # 1語の話者名
+            first = words[0]
+            second = words[1]
+
+            if not first[0].isupper():
+                return None, None
+
+            sentence_starters = {
+                "I", "I'm", "I...", "The", "Oh,", "Okay,",
+                "Yes.", "No.", "It's", "That's", "What",
+                "Where", "Who", "How", "Can", "Are", "Do",
+                "Does", "Is", "We", "You"
+            }
+
+            if second in sentence_starters:
+
+                return (
+                    first,
+                    " ".join(words[1:])
+                )
+
+            if second[0].isupper():
+
+                return (
+                    first,
+                    " ".join(words[1:])
+                )
+
+            return None, None
+
+        # ---------------------------------------------------------
+        # ロールプレイ入力解析
+        #
+        # A: / B: 形式とNHK OCR形式を混在して処理
+        # ---------------------------------------------------------
+
+        i = 0
+
+        while i < len(lines):
+
+            line = lines[i].strip()
+
+            if not line:
+                i += 1
+                continue
+
+            # -------------------------------------------------
+            # A: / B: / C: ... 形式
+            # -------------------------------------------------
+
+            m = re.match(
+                r"^([A-Z])\d*:\s*(.*)$",
+                line
+            )
+
+            if m:
+
+                speaker_label = m.group(1)
+                body = m.group(2).strip()
+
+                # 同じ行の末尾に別の話者名が混ざったOCRを補正
+                # 例:
+                #   B: Understood. Elizabeth:Bob? What's so funny?
+                # ↓
+                #   B: Understood.
+                #   A: Bob? What's so funny?
+                #
+                # 文末記号の後に「名前:」がある場合だけ対象にする。
+                embedded = re.search(
+                    r'(?<=[.!?])\s+[A-Z][A-Za-z .\'-]*:(?=[A-Za-z?!.])',
+                    body
+                )
+
+                if embedded:
+
+                    first_text = body[:embedded.start() + 1].strip()
+                    second_text = body[embedded.end():].strip()
+
+                    if first_text and second_text:
+
+                        speakers.append(speaker_label)
+                        texts.append(first_text)
+
+                        # 埋め込まれた話者名はOCR誤認識として除去し、
+                        # 次の発話をAとして登録する。
+                        speakers.append(
+                            "A" if speaker_label != "A" else "B"
+                        )
+                        texts.append(second_text)
+
+                        i += 1
+                        continue
+
+                speakers.append(speaker_label)
+                texts.append(body)
+
+                i += 1
+                continue
+
+            # -------------------------------------------------
+            # 話者名だけの行
+            # -------------------------------------------------
+
+            if is_speaker_line(line):
+
+                name = line
+
+                # 次の話者名を探す
+                j = i + 1
+
+                while j < len(lines):
+
+                    candidate = lines[j].strip()
+
+                    if candidate and is_speaker_line(candidate):
+                        break
+
+                    # A: / B: も次の区切り
+                    if re.match(
+                        r"^[A-Z]\d*:\s*",
+                        candidate
+                    ):
+                        break
+
+                    j += 1
+
+                body = [
+                    x.strip()
+                    for x in lines[i + 1:j]
+                    if x.strip()
+                ]
+
+                # 同じ話者名がOCRで連続した場合
+                if (
+                    len(body) >= 1
+                    and body[0] == name
+                ):
+                    body = body[1:]
+
+                # 同じ話者名の前後に短いセリフがある場合
+                next_name = (
+                    lines[j].strip()
+                    if j < len(lines)
+                    else None
+                )
+
+                if (
+                    body
+                    and next_name == name
+                    and body[-1].endswith(("?", "!"))
+                ):
+
+                    main_body = body[:-1]
+                    middle = body[-1]
+
+                    if main_body:
+
+                        speakers.append(
+                            get_speaker_label(name)
+                        )
+
+                        texts.append(
+                            " ".join(main_body)
+                        )
+
+                    current_label = (
+                        get_speaker_label(name)
+                    )
+
+                    other = None
+
+                    for previous_speaker in reversed(
+                        speakers
+                    ):
+
+                        if previous_speaker != current_label:
+                            other = previous_speaker
+                            break
+
+                    speakers.append(
+                        other if other else current_label
+                    )
+
+                    texts.append(middle)
+
+                    i = j
+                    continue
+
+                if body:
+
+                    speakers.append(
+                        get_speaker_label(name)
+                    )
+
+                    texts.append(
+                        " ".join(body)
+                    )
+
+                i = j
+                continue
+
+            # -------------------------------------------------
+            # 話者名＋本文が同じ行
+            # 例:
+            # Station staff Welcome!
+            # Carl Yes.
+            # -------------------------------------------------
+
+            name, body = split_speaker(line)
+
+            if name and body:
 
                 speakers.append(
-                    speaker_toggle
+                    get_speaker_label(name)
                 )
 
-                texts.append(line)
+                texts.append(body)
 
-                speaker_toggle = (
-                    "B"
-                    if speaker_toggle == "A"
-                    else "A"
-                )
+            else:
+
+                # 話者を判定できない本文は、
+                # 直前の話者の続きとして扱う
+                if texts and speakers:
+
+                    texts[-1] = (
+                        texts[-1] + " " + line
+                    )
+
+                else:
+
+                    speakers.append("A")
+                    texts.append(line)
+
+            i += 1
 
         conn = get_db()
 
@@ -3987,14 +4405,16 @@ def add_multi():
             (
                 title,
                 category,
-                subcategory
+                subcategory,
+                year_month
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?)
             """,
             (
                 title,
                 "ロールプレイ",
-                "A:B会話"
+                subcategory,
+                year_month
             )
         )
 
@@ -4045,10 +4465,123 @@ def add_multi():
         conn.commit()
         conn.close()
 
-        return redirect("/eng/")
+        return redirect(f"/eng/detail_multi/{conv_id}")
 
     return render_template(
         "add_multi.html"
+    )
+
+# -----------------------
+# ロールプレイメニュー
+# -----------------------
+@app.route("/eng/roleplay")
+def roleplay_menu():
+    return render_template(
+        "roleplay_menu.html"
+    )
+
+# -----------------------
+# 基礎英語 年月メニュー
+# -----------------------
+@app.route("/eng/roleplay/basic1")
+def roleplay_basic1():
+    return roleplay_month_menu("基礎英語1")
+
+
+@app.route("/eng/roleplay/basic2")
+def roleplay_basic2():
+    return roleplay_month_menu("基礎英語2")
+
+
+def roleplay_month_menu(subcategory):
+    conn = get_db()
+
+    months = conn.execute(
+        """
+        SELECT DISTINCT year_month
+        FROM conversations
+        WHERE category='ロールプレイ'
+          AND subcategory=?
+          AND year_month IS NOT NULL
+          AND year_month != ''
+        ORDER BY year_month DESC
+        """,
+        (subcategory,)
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "roleplay_month_menu.html",
+        subcategory=subcategory,
+        months=months
+    )
+
+# -----------------------
+# 登場人物設定
+# -----------------------
+@app.route(
+    "/eng/roleplay/characters/<int:id>",
+    methods=["GET", "POST"]
+)
+def roleplay_characters(id):
+
+    conn = get_db()
+
+    if request.method == "POST":
+
+        for speaker in ["A", "B", "C", "D", "E"]:
+
+            name = request.form.get(
+                speaker,
+                ""
+            ).strip()
+
+            conn.execute(
+                """
+                DELETE FROM roleplay_characters
+                WHERE conversation_id=? AND speaker=?
+                """,
+                (id, speaker)
+            )
+
+            if name:
+                conn.execute(
+                    """
+                    INSERT INTO roleplay_characters
+                    (
+                        conversation_id,
+                        speaker,
+                        name
+                    )
+                    VALUES (?, ?, ?)
+                    """,
+                    (id, speaker, name)
+                )
+
+        conn.commit()
+
+    rows = conn.execute(
+        """
+        SELECT speaker, name
+        FROM roleplay_characters
+        WHERE conversation_id=?
+        ORDER BY speaker
+        """,
+        (id,)
+    ).fetchall()
+
+    conn.close()
+
+    characters = {
+        row["speaker"]: row["name"]
+        for row in rows
+    }
+
+    return render_template(
+        "roleplay_characters.html",
+        conversation_id=id,
+        characters=characters
     )
 
 # -----------------------
@@ -4082,6 +4615,21 @@ def detail_multi(id):
         "mode",
         "learning"
     )
+
+    character_rows = conn.execute(
+        """
+        SELECT speaker, name
+        FROM roleplay_characters
+        WHERE conversation_id=?
+        """,
+        (id,)
+    ).fetchall()
+
+    characters = {
+        row["speaker"]: row["name"]
+        for row in character_rows
+    }
+
     conn.close()
 
     messages = []
@@ -4104,7 +4652,8 @@ def detail_multi(id):
         "detail_multi.html",
         conv=conv,
         messages=messages,
-        practice_mode=practice_mode
+        practice_mode=practice_mode,
+        characters=characters
     )
     
 # -----------------------
@@ -4380,6 +4929,11 @@ def edit_conversation(id):
             ""
         ).strip()
 
+        year_month = request.form.get(
+            "year_month",
+            ""
+        ).strip()
+
         lines_raw = request.form.get(
             "lines",
             ""
@@ -4389,10 +4943,10 @@ def edit_conversation(id):
         conn.execute(
             """
             UPDATE conversations
-            SET title=?, category=?, subcategory=?
+            SET title=?, category=?, subcategory=?, year_month=?
             WHERE id=?
             """,
-            (title, category, subcategory, id)
+            (title, category, subcategory, year_month, id)
         )
 
         # 既存削除
@@ -4430,19 +4984,71 @@ def edit_conversation(id):
                 if not line:
                     continue
 
-                if line.startswith("A:"):
+                m = re.match(
+                    r"^([A-Z])\d*:\s*(.*)$",
+                    line
+                )
 
-                    speaker = "A"
-                    text = line[2:].strip()
+                if m:
 
-                elif re.match(r"^B\d*:", line):
+                    speaker = m.group(1)
+                    text = m.group(2).strip()
 
-                    speaker = "B"
-                    text = re.sub(
-                        r"^B\d*:\s*",
-                        "",
-                        line
-                    ).strip()
+                    # 文末の後にOCRで別の話者名が混入した場合を分割
+                    # 例:
+                    #   B: Understood. Elizabeth:Bob? What's so funny?
+                    #
+                    # ↓
+                    #
+                    #   B: Understood.
+                    #   A: Bob? What's so funny?
+                    embedded = re.search(
+                        r'(?<=[.!?])\s+([A-Z][A-Za-z .\'-]*):(?=[A-Za-z?!.])',
+                        text
+                    )
+
+                    if embedded:
+
+                        first_text = text[
+                            :embedded.start() + 1
+                        ].strip()
+
+                        second_text = text[
+                            embedded.end():
+                        ].strip()
+
+                        embedded_name = embedded.group(1).strip()
+
+                        embedded_row = conn.execute(
+                            """
+                            SELECT speaker
+                            FROM roleplay_characters
+                            WHERE conversation_id=? AND name=?
+                            """,
+                            (id, embedded_name)
+                        ).fetchone()
+
+                        if first_text:
+                            records.append(
+                                (speaker, first_text)
+                            )
+
+                        if second_text:
+
+                            if embedded_row:
+                                next_speaker = embedded_row["speaker"]
+                            else:
+                                next_speaker = (
+                                    "A"
+                                    if speaker != "A"
+                                    else "B"
+                                )
+
+                            records.append(
+                                (next_speaker, second_text)
+                            )
+
+                        continue
 
                 else:
 
@@ -4450,7 +5056,9 @@ def edit_conversation(id):
                     text = line
 
                 if text:
-                    records.append((speaker, text))
+                    records.append(
+                        (speaker, text)
+                    )
 
         else:
 
@@ -4529,7 +5137,7 @@ def edit_conversation(id):
 
         lines = [
             f"{r['speaker']}: {r['text']}"
-            if r['speaker'] in ("A", "B")
+            if r['speaker']
             else r['text']
             for r in rows
         ]
@@ -4819,7 +5427,7 @@ def news_import():
         # source_text用に
         # B1:, B2: を除去
         body = re.sub(
-            r"^B\d*:\s*",
+            r"^[A-Z]\d*:\s*",
             "",
             body,
             flags=re.MULTILINE
@@ -4838,7 +5446,7 @@ def news_import():
                 continue
 
             text = re.sub(
-                r"^B\d*:\s*",
+                r"^[A-Z]\d*:\s*",
                 "", 
                 line
             )  
@@ -4878,7 +5486,7 @@ def news_import():
         if speakers[i] == "B":
 
             text = re.sub(
-                r"^B\d*:\s*",
+                r"^[A-Z]\d*:\s*",
                 "",
                 text
             )

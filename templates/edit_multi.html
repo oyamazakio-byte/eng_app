@@ -91,8 +91,10 @@ selected
 </option>
 
 </select>
+{% if conv.category != "ロールプレイ" %}
 
 <label style="font-size:24px;">
+
 サブカテゴリ
 </label>
 
@@ -141,6 +143,64 @@ selected
 </option>
 
 </select>
+{% endif %}
+
+{% if conv.category == "ロールプレイ" %}
+
+<label style="font-size:24px;">
+ロールプレイ種類
+</label>
+
+<br><br>
+
+<select name="subcategory">
+
+<option value="一般ロールプレイ"
+{% if conv.subcategory == "一般ロールプレイ" %}
+selected
+{% endif %}
+>
+🎭 一般ロールプレイ
+</option>
+
+<option value="基礎英語1"
+{% if conv.subcategory == "基礎英語1" %}
+selected
+{% endif %}
+>
+📘 基礎英語1
+</option>
+
+<option value="基礎英語2"
+{% if conv.subcategory == "基礎英語2" %}
+selected
+{% endif %}
+>
+📗 基礎英語2
+</option>
+
+</select>
+
+<label style="font-size:24px;">
+年月
+</label>
+
+<br><br>
+
+<input
+type="month"
+name="year_month"
+value="{{ conv.year_month or '' }}"
+style="
+width:100%;
+font-size:24px;
+padding:12px;
+margin-bottom:20px;
+box-sizing:border-box;
+"
+>
+
+{% endif %}
 
 <input
 type="text"
