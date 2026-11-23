@@ -119,6 +119,13 @@ def is_body_line(line):
         re.IGNORECASE
     ):
         return True
+    # 国名・国略称＋役職・人物名
+    if re.match(
+        r"^(US|U\.S\.)\s+(President|Vice President)\s+",
+        line,
+        re.IGNORECASE
+    ):
+        return True
     # 本文でよくある「役職・人物名」で始まる形
     if re.match(
         r"^(Ontario Premier|Prime Minister|President|Governor|Mayor|Minister)\s+",
@@ -176,6 +183,97 @@ def linkify(text):
 @app.template_filter("linkify")
 def linkify_filter(text):
     return linkify(text)
+
+
+def grammar_linkify(text):
+    """
+    文法表示専用。
+    文章途中の不要な改行はスペースに置き換え、
+    見出し・Q&A・段落などの意味のある改行は残す。
+    """
+    if not text:
+        return ""
+
+    text = re.sub(
+        r"(https?://[^\s]+)",
+        r'<a href="\1" target="_blank">\1</a>',
+        text
+    )
+
+    lines = text.replace("\r\n", "\n").split("\n")
+    result = []
+
+    for line in lines:
+        if not result:
+            result.append(line)
+            continue
+
+        prev = result[-1].rstrip()
+        cur = line.lstrip()
+
+        if (
+            cur
+            and re.match(r"^[a-z]", cur)
+            and not re.match(r"^[a-z]\.\d+[-.]?", cur, re.IGNORECASE)
+            and not re.match(r"^q\.\d+[-.]?", cur, re.IGNORECASE)
+            and cur not in ("Let's Check", "Let's Practice")
+            and not re.search(r"[.!?。！？：:]$", prev)
+        ):
+            result[-1] = prev + " " + cur
+        else:
+            result.append(line)
+
+    return Markup("<br>".join(result))
+
+
+@app.template_filter("grammar_linkify")
+def grammar_linkify_filter(text):
+    return grammar_linkify(text)
+
+
+def source_text_format(text):
+    """
+    ニュース英語のソース表示専用。
+    文末のピリオドの後で改行する。
+    データベースの本文は変更しない。
+    """
+    if not text:
+        return ""
+
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    # U.S. / U.K. / U.N. / a.m. / p.m. などを一時的に保護する
+    abbreviations = []
+
+    def protect_abbreviation(m):
+        abbreviations.append(m.group(0))
+        return f"@@A{len(abbreviations)-1}@@"
+
+    text = re.sub(
+        r"\b(?:U\.S|U\.K|U\.N|a\.m|p\.m)\.(?=\s)",
+        protect_abbreviation,
+        text
+    )
+
+    # ピリオド＋空白の後で改行する
+    text = re.sub(r"\.\s+", ".\n", text)
+
+    # 保護した略語を元に戻す
+    text = re.sub(
+        r"@@A(\d+)@@",
+        lambda m: abbreviations[int(m.group(1))],
+        text
+    )
+
+    return Markup("<br>".join(text.split("\n")))
+
+@app.template_filter("source_text_format")
+def source_text_format_filter(text):
+    return source_text_format(text)
+
+@app.template_filter("source_text_format")
+def source_text_format_filter(text):
+    return source_text_format(text)
         
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -185,7 +283,6 @@ DB_NAME = "/home/bitnami/eng_app/conversation.db"
 USAGE_DB_NAME = "/home/bitnami/eng_app/usage.db"
 API_BUDGET_USD = 5.0
 DICT_DIR = "/home/bitnami/eng_app/dict"
-
 STATS_PATH = (
     f"{DICT_DIR}/stats.json"
 )
@@ -2968,10 +3065,47 @@ def index():
         ""
     ).strip()
 
+    subcategory = request.args.get(
+        "subcategory",
+        ""
+    ).strip()
+
+    year_month = request.args.get(
+        "year_month",
+        ""
+    ).strip()
+
     conn = get_db()
     
 
-    if category:
+    if category and subcategory and year_month:
+
+        data = conn.execute(
+            """
+            SELECT *
+            FROM conversations
+            WHERE category=?
+              AND subcategory=?
+              AND year_month=?
+            ORDER BY id DESC
+            """,
+            (category, subcategory, year_month)
+        ).fetchall()
+
+    elif category and subcategory:
+
+        data = conn.execute(
+            """
+            SELECT *
+            FROM conversations
+            WHERE category=?
+              AND subcategory=?
+            ORDER BY id DESC
+            """,
+            (category, subcategory)
+        ).fetchall()
+
+    elif category:
 
         data = conn.execute(
             """
@@ -4213,7 +4347,7 @@ def add_multi():
             # -------------------------------------------------
 
             m = re.match(
-                r"^([A-Z])\d*:\s*(.*)$",
+                r"^([A-Z])\d*[:：]\s*(.*)$",
                 line
             )
 
@@ -4509,13 +4643,59 @@ def roleplay_month_menu(subcategory):
         (subcategory,)
     ).fetchall()
 
+    conversations = conn.execute(
+        """
+        SELECT id, year_month, title
+        FROM conversations
+        WHERE category='ロールプレイ'
+          AND subcategory=?
+          AND year_month IS NOT NULL
+          AND year_month != ''
+        ORDER BY year_month DESC, id DESC
+        """,
+        (subcategory,)
+    ).fetchall()
+
     conn.close()
 
     return render_template(
         "roleplay_month_menu.html",
         subcategory=subcategory,
-        months=months
+        months=months,
+        conversations=conversations
     )
+
+# -----------------------
+# ロールプレイ 会話タイトル一覧
+# -----------------------
+@app.route("/eng/roleplay/titles")
+def roleplay_titles():
+    subcategory = request.args.get("subcategory", "").strip()
+    year_month = request.args.get("year_month", "").strip()
+
+    conn = get_db()
+
+    conversations = conn.execute(
+        """
+        SELECT id, title, favorite
+        FROM conversations
+        WHERE category='ロールプレイ'
+          AND subcategory=?
+          AND year_month=?
+        ORDER BY id DESC
+        """,
+        (subcategory, year_month)
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "roleplay_title_list.html",
+        subcategory=subcategory,
+        year_month=year_month,
+        conversations=conversations
+    )
+
 
 # -----------------------
 # 登場人物設定
@@ -4545,18 +4725,17 @@ def roleplay_characters(id):
                 (id, speaker)
             )
 
-            if name:
-                conn.execute(
-                    """
-                    INSERT INTO roleplay_characters
-                    (
-                        conversation_id,
-                        speaker,
-                        name
-                    )
-                    VALUES (?, ?, ?)
-                    """,
-                    (id, speaker, name)
+            conn.execute(
+                """
+                INSERT INTO roleplay_characters
+                (
+                    conversation_id,
+                    speaker,
+                    name
+                )
+                VALUES (?, ?, ?)
+                """,
+                (id, speaker, name if name else " ")
                 )
 
         conn.commit()
@@ -4621,6 +4800,7 @@ def detail_multi(id):
         SELECT speaker, name
         FROM roleplay_characters
         WHERE conversation_id=?
+        ORDER BY speaker
         """,
         (id,)
     ).fetchall()
@@ -4949,6 +5129,20 @@ def edit_conversation(id):
             (title, category, subcategory, year_month, id)
         )
 
+        # 既存メッセージの文法を退避
+        old_grammar = {
+            row["text"]: row["grammar_note"]
+            for row in conn.execute(
+                """
+                SELECT text, grammar_note
+                FROM messages
+                WHERE conversation_id=?
+                """,
+                (id,)
+            ).fetchall()
+            if row["grammar_note"]
+        }
+
         # 既存削除
         conn.execute(
             """
@@ -4961,6 +5155,24 @@ def edit_conversation(id):
         # 会話の種類ごとに英文と話者を整理
         records = []
 
+        # ロールプレイの登録キャラクター
+        roleplay_chars = {}
+        if category == "ロールプレイ":
+            char_rows = conn.execute(
+                """
+                SELECT speaker, name
+                FROM roleplay_characters
+                WHERE conversation_id=?
+                """,
+                (id,)
+            ).fetchall()
+
+            roleplay_chars = {
+                row["speaker"]: row["name"].strip()
+                for row in char_rows
+                if row["name"] and row["name"].strip()
+            }
+
         if category == "一般英語":
 
             for line in lines_raw.splitlines():
@@ -4970,10 +5182,7 @@ def edit_conversation(id):
                 if not line:
                     continue
 
-                split_lines = ai_split_english_lines(line)
-
-                for text in split_lines:
-                    records.append(("", text))
+                records.append(("", line))
 
         elif category == "ロールプレイ":
 
@@ -4985,7 +5194,7 @@ def edit_conversation(id):
                     continue
 
                 m = re.match(
-                    r"^([A-Z])\d*:\s*(.*)$",
+                    r"^([A-Z])\d*[:：]\s*(.*)$",
                     line
                 )
 
@@ -4993,6 +5202,30 @@ def edit_conversation(id):
 
                     speaker = m.group(1)
                     text = m.group(2).strip()
+
+                    # 未登録の話者記号の後に、登録キャラクター名が
+                    # 混入している場合を修正
+                    # 例:
+                    #   C: Gordon: Mo-shi? What does that mean?
+                    #
+                    # ↓
+                    #
+                    #   A: Mo-shi? What does that mean?
+                    if speaker not in roleplay_chars:
+                        name_match = re.match(
+                            r"^([A-Za-z][A-Za-z .'-]*):\\s*(.*)$",
+                            text
+                        )
+
+                        if name_match:
+                            embedded_name = name_match.group(1).strip()
+                            rest_text = name_match.group(2).strip()
+
+                            for char_speaker, char_name in roleplay_chars.items():
+                                if char_name.lower() == embedded_name.lower():
+                                    speaker = char_speaker
+                                    text = rest_text
+                                    break
 
                     # 文末の後にOCRで別の話者名が混入した場合を分割
                     # 例:
@@ -5089,16 +5322,18 @@ def edit_conversation(id):
                 text,
                 japanese,
                 kana,
-                kana_native
+                kana_native,
+                grammar_note
             )
-            VALUES (?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?)
             """, (
                 id,
                 speaker,
                 text,
                 japanese,
                 kana,
-                kana_native
+                kana_native,
+                old_grammar.get(text, "")
             ))
         conn.commit()
 
@@ -5574,8 +5809,7 @@ def general_import():
         if not line:
             continue
 
-        split_lines = ai_split_english_lines(line)
-        texts.extend(split_lines)
+        texts.append(line)
 
     conn = get_db()
 

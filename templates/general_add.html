@@ -5,7 +5,16 @@ margin:20px 0;
 一般英語追加
 </h1>
 
-<form method="POST" action="/eng/general_import">
+<div id="loading" style="display:none;position:fixed;top:120px;left:0;width:100%;font-size:42px;font-weight:bold;color:red;background:yellow;padding:30px;text-align:center;z-index:99999;">
+<div id="loadingText">
+📝 一般英語解析待機中...
+</div>
+<div style="font-size:22px;margin-top:10px;color:#555;">
+しばらくお待ちください
+</div>
+</div>
+
+<form id="generalForm" method="POST" action="/eng/general_import">
 
 <div style="
 font-size:28px;
@@ -81,7 +90,7 @@ background:white;
 <br><br>
 
 <button
-type="submit"
+type="button" id="submitBtn" onclick="startGeneralImport()"
 style="
 font-size:32px;
 padding:20px;
@@ -115,3 +124,73 @@ text-decoration:none;
 ← 戻る
 
 </a>
+<script>
+
+function startGeneralImport(){
+
+    document.getElementById(
+        "loading"
+    ).style.display = "block";
+
+    const btn =
+        document.getElementById(
+            "submitBtn"
+        );
+
+    btn.disabled = true;
+
+    btn.innerText =
+        "変換中...";
+
+    startGeneralLoadingSteps();
+
+    setTimeout(() => {
+
+        document.getElementById(
+            "generalForm"
+        ).submit();
+
+    }, 5000);
+}
+
+function startGeneralLoadingSteps(){
+
+    const loadingText =
+        document.getElementById(
+            "loadingText"
+        );
+
+    const steps = [
+
+        "📝 一般英語解析中...",
+        "🧠 AIカタカナ変換中...",
+        "🌐 AI翻訳生成中...",
+        "💾 データ保存中...",
+        "📘 学習画面を作成しています..."
+
+    ];
+
+    let index = 0;
+
+    loadingText.innerText =
+        steps[0];
+
+    const interval = setInterval(() => {
+
+        index++;
+
+        if(index >= steps.length){
+
+            clearInterval(interval);
+
+            return;
+        }
+
+        loadingText.innerText =
+            steps[index];
+
+    }, 1200);
+}
+
+</script>
+

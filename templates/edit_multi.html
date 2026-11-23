@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>会話編集</title>
 
 <style>
@@ -13,7 +14,7 @@ body{
 
 input[type="text"]{
     width:100%;
-    font-size:18px;
+    font-size:28px;
     padding:8px;
     margin-bottom:12px;
 }
@@ -21,26 +22,26 @@ input[type="text"]{
 textarea{
     width:100%;
     height:400px;
-    font-size:18px;
+    font-size:28px;
     padding:10px;
 }
 
 button{
-    font-size:18px;
-    padding:10px 20px;
+    font-size:28px;
+    padding:15px 25px;
     margin-top:15px;
 }
 
 select{
     width:100%;
-    font-size:20px;
+    font-size:24px;
     padding:10px;
     margin-bottom:20px;
 }
 
 .back-button{
-    font-size:20px;
-    padding:10px 20px;
+    font-size:24px;
+    padding:15px 25px;
     margin-top:20px;
     border:none;
     border-radius:10px;
@@ -55,6 +56,10 @@ select{
 <body>
 
 <h2>会話編集</h2>
+<div id="loading" style="display:none;position:fixed;top:120px;left:0;width:100%;font-size:42px;font-weight:bold;color:red;background:yellow;padding:30px;text-align:center;z-index:99999;">
+<div id="loadingText">📝 保存・再翻訳中...</div>
+<div style="font-size:22px;margin-top:10px;color:#555;">しばらくお待ちください</div>
+</div>
 
 <form method="POST">
 
@@ -225,7 +230,7 @@ font-weight:bold;
 
 <br>
 
-<button type="submit">
+<button type="submit" onclick="startEditSave()">
 保存して再翻訳
 </button>
 
@@ -240,5 +245,19 @@ onclick="history.back()"
 ← 戻る
 </button>
 
+<script>
+function startEditSave(){
+    document.getElementById("loading").style.display = "block";
+    const form = document.querySelector("form");
+    const btn = form.querySelector("button[type=submit]");
+    if(btn){
+        btn.disabled = true;
+        btn.innerText = "変換中...";
+    }
+    setTimeout(() => {
+        form.submit();
+    }, 300);
+}
+</script>
 </body>
 </html>

@@ -64,6 +64,13 @@
     }
 
 }
+/* iPad：文法本文を会話本文と同程度にする */
+@media screen and (min-width:601px) and (max-width:1366px) and (pointer:coarse) {
+    [id^="grammar-"] {
+        font-size:24px !important;
+    }
+}
+
 </style>
     
 <div style="
@@ -80,7 +87,7 @@ flex-wrap:wrap;
 ">
 
 <h1 style="
-font-size:40px;
+font-size:26px;
 margin:0;
 ">
 
@@ -88,6 +95,7 @@ margin:0;
 
 </h1>
 
+{% if conv.category == "ロールプレイ" %}
 <a
 href="/eng/roleplay/characters/{{ conv.id }}"
 style="
@@ -100,6 +108,7 @@ text-decoration:none;
 white-space:nowrap;">
 👥 登場人物設定
 </a>
+{% endif %}
 
 <div style="
 display:flex;
@@ -178,7 +187,7 @@ white-space:nowrap;">
 </button>
 
 <button
-onclick="location.href='/eng/'"
+onclick="{% if conv.category == 'ロールプレイ' %}location.href='/eng/roleplay'{% else %}location.href='/eng/'{% endif %}"
 
 style="
 font-size:24px;
@@ -539,7 +548,10 @@ background:#ffffff;">
 
 
 <div style="font-size:40px;font-weight:bold;">
-{% if m.speaker %}{{ characters.get(m.speaker, m.speaker) }}: {% endif %}{{ m.text }}
+{% if m.speaker %}
+{% set cname = characters.get(m.speaker, '')|trim %}
+{% if cname %}{{ cname }}: {% endif %}
+{% endif %}{{ m.text|source_text_format }}
 </div>
 
 <div style="margin-top:10px;">
@@ -874,11 +886,12 @@ background:#f5f5f5;
 border-left:6px solid #795548;
 border-radius:10px;
 font-size:24px;
-line-height:1.15;
+font-family:sans-serif;
+line-height:1.4;
 white-space:pre-line;
 ">
 
-{{ m.grammar_note|linkify }}
+{{ m.grammar_note|grammar_linkify }}
 
 </div>
 {% endif %}
@@ -954,7 +967,7 @@ transition:width 0.5s;
 </div>
 <hr>
 
-<button onclick="location.href='/eng/'"
+<button onclick="{% if conv.category == 'ロールプレイ' %}location.href='/eng/roleplay'{% else %}location.href='/eng/'{% endif %}"
 
 style="font-size:30px;padding:20px;width:100%;">
 
@@ -1061,28 +1074,64 @@ line-height:1.6;
 white-space:pre;
 display:inline-block;
 min-width:max-content;
-">{% for m in messages %}{% if m.speaker %}{{ m.speaker }}: {{ m.text }}
+">{% for m in messages %}{% if m.speaker %}{{ characters.get(m.speaker, m.speaker) }}: {{ m.text|source_text_format }}
 {% else %}{{ m.text }}
 {% endif %}{% endfor %}</pre>
-{% else %}
-{{ conv.source_title }}
+{% elif conv.category == "一般英語" %}
+{{ conv.source_title|source_text_format }}
 </div>
 
 <pre
 style="
 margin:0;
-font-size:26px;
+font-size:40px;
 line-height:1.6;
-white-space:pre;
+white-space:pre-wrap;
+display:inline-block;
+min-width:max-content;
+">{% for m in messages %}{{ m.text }}
+{% endfor %}</pre>
+{% else %}
+{{ conv.source_title|source_text_format }}
+</div>
+
+<pre
+style="
+margin:0;
+font-size:40px;
+line-height:1.6;
+white-space:pre-wrap;
 display:inline-block;
 min-width:max-content;
 ">
-{{ conv.source_text }}
+{{ conv.source_text|source_text_format }}
 </pre>
 {% endif %}
     </div>
 
-<!-- サイズ変更ハンドル -->
+<!-- 左上サイズ変更ハンドル -->
+<div
+id="resizeHandleTopLeft"
+style="
+position:absolute;
+left:4px;
+top:4px;
+width:30px;
+height:30px;
+cursor:nwse-resize;
+z-index:100000;
+display:flex;
+align-items:flex-start;
+justify-content:flex-start;
+font-size:20px;
+font-weight:bold;
+color:white; background:transparent;
+user-select:none; touch-action:none;
+">
+◢
+</div>
+
+<!-- 右下サイズ変更ハンドル -->
 <div
 id="resizeHandle"
 style="
@@ -2280,7 +2329,9 @@ function saveSourceWindow(){
     );
 }
 // =====================
-// ソース小窓をドラッグ移動
+// =====================
+// ソース小窓のドラッグ・リサイズ
+// Pointer Events方式
 // =====================
 
 const sourceModal =
@@ -2289,199 +2340,362 @@ const sourceModal =
 const sourceHeader =
     document.getElementById("sourceHeader");
 
-let drag = false;
-let offsetX = 0;
-let offsetY = 0;
-// =====================
-// サイズ変更
-// =====================
-
 const resizeHandle =
-    document.getElementById(
-        "resizeHandle"
-    );
+    document.getElementById("resizeHandle");
 
-let resizing = false;
-let startWidth = 0;
-let startHeight = 0;
+const resizeHandleTopLeft =
+    document.getElementById("resizeHandleTopLeft");
+
+let sourceAction = null;
+
 let startX = 0;
 let startY = 0;
+let startLeft = 0;
+let startTop = 0;
+let startWidth = 0;
+let startHeight = 0;
 
-// =====================
-// リサイズ開始（マウス）
-// =====================
-resizeHandle.addEventListener("mousedown", function(e){
+const SOURCE_MIN_WIDTH = 300;
+const SOURCE_MIN_HEIGHT = 300;
+const SOURCE_MARGIN = 10;
 
-    resizing = true;
+// ブラウザ標準の resize は使わず、JavaScriptで統一
+sourceModal.style.resize = "none";
 
-    startWidth = sourceModal.offsetWidth;
-    startHeight = sourceModal.offsetHeight;
+// iPadのタッチスクロールと操作を競合させない
+sourceHeader.style.touchAction = "none";
+resizeHandle.style.touchAction = "none";
+resizeHandleTopLeft.style.touchAction = "none";
+
+// ---------------------
+// ドラッグ開始
+// ---------------------
+sourceHeader.addEventListener("pointerdown", function(e){
+
+    // ✖ボタンやリサイズハンドルからはドラッグ開始しない
+    if (
+        e.target.closest("button") ||
+        e.target === resizeHandle ||
+        e.target === resizeHandleTopLeft
+    ){
+        return;
+    }
+
+    const rect = sourceModal.getBoundingClientRect();
+
+    sourceAction = {
+        type: "drag",
+        pointerId: e.pointerId
+    };
 
     startX = e.clientX;
     startY = e.clientY;
 
+    startLeft = rect.left;
+    startTop = rect.top;
+
+    sourceHeader.setPointerCapture(e.pointerId);
+
     e.preventDefault();
 });
 
-// =====================
-// リサイズ開始（iPad）
-// =====================
-resizeHandle.addEventListener("touchstart", function(e){
+// ---------------------
+// 右下リサイズ開始
+// ---------------------
+resizeHandle.addEventListener("pointerdown", function(e){
 
-    resizing = true;
+    const rect = sourceModal.getBoundingClientRect();
 
-    startWidth = sourceModal.offsetWidth;
-    startHeight = sourceModal.offsetHeight;
+    sourceAction = {
+        type: "resizeBR",
+        pointerId: e.pointerId
+    };
 
-    const touch = e.touches[0];
+    startX = e.clientX;
+    startY = e.clientY;
 
-    startX = touch.clientX;
-    startY = touch.clientY;
+    startLeft = rect.left;
+    startTop = rect.top;
+
+    startWidth = rect.width;
+    startHeight = rect.height;
+
+    resizeHandle.setPointerCapture(e.pointerId);
+
+    e.preventDefault();
+});
+
+// ---------------------
+// 左上リサイズ開始
+// ---------------------
+resizeHandleTopLeft.addEventListener("pointerdown", function(e){
+
+    const rect = sourceModal.getBoundingClientRect();
+
+    sourceAction = {
+        type: "resizeTL",
+        pointerId: e.pointerId
+    };
+
+    startX = e.clientX;
+    startY = e.clientY;
+
+    startLeft = rect.left;
+    startTop = rect.top;
+
+    startWidth = rect.width;
+    startHeight = rect.height;
+
+    resizeHandleTopLeft.setPointerCapture(e.pointerId);
+
+    e.preventDefault();
+});
+
+// ---------------------
+// 操作中
+// ---------------------
+document.addEventListener("pointermove", function(e){
+
+    if(!sourceAction) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // =====================
+    // ドラッグ
+    // =====================
+    if(sourceAction.type === "drag"){
+
+        let newLeft = startLeft + dx;
+        let newTop = startTop + dy;
+
+        const maxLeft =
+            Math.max(
+                SOURCE_MARGIN,
+                viewportWidth -
+                sourceModal.offsetWidth -
+                SOURCE_MARGIN
+            );
+
+        const maxTop =
+            Math.max(
+                SOURCE_MARGIN,
+                viewportHeight -
+                sourceModal.offsetHeight -
+                SOURCE_MARGIN
+            );
+
+        newLeft =
+            Math.max(
+                SOURCE_MARGIN,
+                Math.min(newLeft, maxLeft)
+            );
+
+        newTop =
+            Math.max(
+                SOURCE_MARGIN,
+                Math.min(newTop, maxTop)
+            );
+
+        sourceModal.style.left =
+            newLeft + "px";
+
+        sourceModal.style.top =
+            newTop + "px";
+
+        sourceModal.style.right =
+            "auto";
+    }
+
+    // =====================
+    // 右下リサイズ
+    // =====================
+    else if(sourceAction.type === "resizeBR"){
+
+        const maxWidth =
+            Math.max(
+                SOURCE_MIN_WIDTH,
+                viewportWidth -
+                startLeft -
+                SOURCE_MARGIN
+            );
+
+        const maxHeight =
+            Math.max(
+                SOURCE_MIN_HEIGHT,
+                viewportHeight -
+                startTop -
+                SOURCE_MARGIN
+            );
+
+        let newWidth =
+            startWidth + dx;
+
+        let newHeight =
+            startHeight + dy;
+
+        newWidth =
+            Math.max(
+                SOURCE_MIN_WIDTH,
+                Math.min(newWidth, maxWidth)
+            );
+
+        newHeight =
+            Math.max(
+                SOURCE_MIN_HEIGHT,
+                Math.min(newHeight, maxHeight)
+            );
+
+        sourceModal.style.width =
+            newWidth + "px";
+
+        sourceModal.style.height =
+            newHeight + "px";
+    }
+
+    // =====================
+    // 左上リサイズ
+    // =====================
+    else if(sourceAction.type === "resizeTL"){
+
+        let newWidth =
+            startWidth - dx;
+
+        let newHeight =
+            startHeight - dy;
+
+        const maxWidth =
+            startLeft +
+            startWidth -
+            SOURCE_MARGIN;
+
+        const maxHeight =
+            startTop +
+            startHeight -
+            SOURCE_MARGIN;
+
+        newWidth =
+            Math.max(
+                SOURCE_MIN_WIDTH,
+                Math.min(newWidth, maxWidth)
+            );
+
+        newHeight =
+            Math.max(
+                SOURCE_MIN_HEIGHT,
+                Math.min(newHeight, maxHeight)
+            );
+
+        const newLeft =
+            startLeft +
+            startWidth -
+            newWidth;
+
+        const newTop =
+            startTop +
+            startHeight -
+            newHeight;
+
+        sourceModal.style.left =
+            Math.max(
+                SOURCE_MARGIN,
+                newLeft
+            ) + "px";
+
+        sourceModal.style.top =
+            Math.max(
+                SOURCE_MARGIN,
+                newTop
+            ) + "px";
+
+        sourceModal.style.width =
+            newWidth + "px";
+
+        sourceModal.style.height =
+            newHeight + "px";
+
+        sourceModal.style.right =
+            "auto";
+    }
 
     e.preventDefault();
 
 }, { passive:false });
 
-// =====================
-// リサイズ中（マウス）
-// =====================
-document.addEventListener("mousemove", function(e){
+// ---------------------
+// 操作終了
+// ---------------------
+function finishSourceAction(){
 
-    if(!resizing) return;
+    if(!sourceAction) return;
 
-    sourceModal.style.width =
-        (startWidth + (e.clientX - startX)) + "px";
+    saveSourceWindow();
 
-    sourceModal.style.height =
-        (startHeight + (e.clientY - startY)) + "px";
-});
+    sourceAction = null;
+}
 
-// =====================
-// リサイズ中（iPad）
-// =====================
-document.addEventListener("touchmove", function(e){
+document.addEventListener(
+    "pointerup",
+    finishSourceAction
+);
 
-    if(!resizing) return;
+document.addEventListener(
+    "pointercancel",
+    finishSourceAction
+);
 
-    const touch = e.touches[0];
+// ---------------------
+// 画面サイズ変更時も画面内に収める
+// ---------------------
+window.addEventListener("resize", function(){
 
-    sourceModal.style.width =
-        (startWidth + (touch.clientX - startX)) + "px";
-
-    sourceModal.style.height =
-        (startHeight + (touch.clientY - startY)) + "px";
-
-    e.preventDefault();
-
-}, { passive:false });
-
-// =====================
-// リサイズ終了
-// =====================
-document.addEventListener("mouseup", function(){
-
-    if(resizing){
-
-        saveSourceWindow();
+    if(sourceModal.style.display === "none"){
+        return;
     }
 
-    resizing = false;
-});
+    const rect =
+        sourceModal.getBoundingClientRect();
 
-document.addEventListener("touchend", function(){
+    const maxLeft =
+        Math.max(
+            SOURCE_MARGIN,
+            window.innerWidth -
+            rect.width -
+            SOURCE_MARGIN
+        );
 
-    if(resizing){
+    const maxTop =
+        Math.max(
+            SOURCE_MARGIN,
+            window.innerHeight -
+            rect.height -
+            SOURCE_MARGIN
+        );
 
-        saveSourceWindow();
-    }
+    const left =
+        Math.max(
+            SOURCE_MARGIN,
+            Math.min(rect.left, maxLeft)
+        );
 
-    resizing = false;
-});
-
-// =====================
-// ドラッグ移動
-// =====================
-
-sourceHeader.addEventListener("mousedown", function(e){
-
-    drag = true;
-
-    offsetX =
-        e.clientX -
-        sourceModal.offsetLeft;
-
-    offsetY =
-        e.clientY -
-        sourceModal.offsetTop;
-});
-
-sourceHeader.addEventListener("touchstart", function(e){
-
-    drag = true;
-
-    const touch =
-        e.touches[0];
-
-    offsetX =
-        touch.clientX -
-        sourceModal.offsetLeft;
-
-    offsetY =
-        touch.clientY -
-        sourceModal.offsetTop;
-});
-
-document.addEventListener("mousemove", function(e){
-
-    if(!drag) return;
+    const top =
+        Math.max(
+            SOURCE_MARGIN,
+            Math.min(rect.top, maxTop)
+        );
 
     sourceModal.style.left =
-        (e.clientX - offsetX) + "px";
+        left + "px";
 
     sourceModal.style.top =
-        (e.clientY - offsetY) + "px";
+        top + "px";
 
     sourceModal.style.right =
         "auto";
 });
 
-document.addEventListener("touchmove", function(e){
 
-    if(!drag) return;
-
-    const touch =
-        e.touches[0];
-
-    sourceModal.style.left =
-        (touch.clientX - offsetX) + "px";
-
-    sourceModal.style.top =
-        (touch.clientY - offsetY) + "px";
-
-    sourceModal.style.right =
-        "auto";
-
-    e.preventDefault();
-
-}, { passive:false });
-
-document.addEventListener("mouseup", function(){
-
-    if(drag){
-
-        saveSourceWindow();
-    }
-
-    drag = false;
-});
-
-document.addEventListener("touchend", function(){
-
-    if(drag){
-
-        saveSourceWindow();
-    }
-
-    drag = false;
-});
 </script>
